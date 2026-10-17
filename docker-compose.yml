@@ -1,0 +1,98 @@
+# Local stack for the self-healing LLM gateway. Every port is bound to 127.0.0.1 only.
+#   docker compose -p p3-gateway up -d                 # redis, prometheus, grafana, ollama-cpu
+#   docker compose -p p3-gateway --profile app up -d   # + gateway and chaos proxy containers
+name: p3-gateway
+
+services:
+  redis:
+    image: redis:7.4.11-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    ports: ["127.0.0.1:16380:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  ollama-cpu:
+    # Second, independent model runtime (CPU, qwen2.5:0.5b): a separate failure domain from host GPU Ollama.
+    image: ollama/ollama:0.40.5
+    ports: ["127.0.0.1:11435:11434"]
+    environment:
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_KEEP_ALIVE: "30m"
+    volumes: ["ollama-cpu-models:/root/.ollama"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    ports: ["127.0.0.1:19090:9090"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    ports: ["127.0.0.1:13001:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?run scripts/init_env.py to create .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/gateway.json
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  gateway:
+    profiles: ["app"]
+    build: .
+    image: self-healing-llm-gateway:local
+    env_file:
+      - path: .env
+        required: true
+      - path: ${PORTFOLIO_ENV_FILE:-F:/.secrets/portfolio.env}
+        required: false
+    environment:
+      GATEWAY_HOST: 0.0.0.0
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_CPU_URL: http://ollama-cpu:11434
+      LLM_SPEND_LEDGER: /ledger/ledger.jsonl
+    volumes: ["${LLM_SPEND_DIR:-F:/.llm-spend}:/ledger"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:8103:8103"]
+    depends_on:
+      redis: {condition: service_healthy}
+
+  chaos:
+    profiles: ["app"]
+    image: self-healing-llm-gateway:local
+    command: ["python", "-m", "gateway.chaos"]
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      CHAOS_ENABLED: "1"
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_CPU_URL: http://ollama-cpu:11434
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:8113:8113"]
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  ollama-cpu-models:
