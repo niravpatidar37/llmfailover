@@ -17,8 +17,8 @@ from redis.asyncio import Redis
 from .config import GatewayConfig, RequestClass
 from .metrics import Metrics
 from .redact import redact
-from .router import AllProvidersFailed, Router, RouteResult
-from .store import CostStore, IdempotencyStore, IdemRecord
+from .router import AllProvidersFailed, KillSwitchEngaged, Router, RouteResult
+from .store import CostStore, IdempotencyStore, IdemRecord, KillSwitch
 
 QUEUE_KEY = "gw:queue"
 PROCESSING_KEY = "gw:queue:processing"
@@ -55,11 +55,19 @@ def error_body(message: str, etype: str, code: str, **extra: Any) -> dict[str, A
 
 
 class GatewayService:
-    def __init__(self, cfg: GatewayConfig, redis: Redis, router: Router, metrics: Metrics) -> None:
+    def __init__(
+        self,
+        cfg: GatewayConfig,
+        redis: Redis,
+        router: Router,
+        metrics: Metrics,
+        kill_switch: KillSwitch | None = None,
+    ) -> None:
         self.cfg = cfg
         self.redis = redis
         self.router = router
         self.metrics = metrics
+        self.kill_switch = kill_switch
         self.idem = IdempotencyStore(redis)
         self.costs = CostStore()
         self._worker_sem = asyncio.Semaphore(4)
@@ -169,6 +177,13 @@ class GatewayService:
             return await self._duplicate(ctx, rec, fp)
         try:
             rr = await self.router.route(cls, messages, max_tokens, temperature)
+        except KillSwitchEngaged:
+            await self.idem.release(ctx.tenant, ctx.request_id)
+            return HandleResult(
+                503,
+                error_body("LLM calls are disabled by the operator", "service_unavailable", "kill_switch"),
+                {"Retry-After": "60"},
+            )
         except AllProvidersFailed as exc:
             attempts = [a.as_dict() for a in exc.attempts]
             if cls.mode == "deferrable":
@@ -282,6 +297,8 @@ class GatewayService:
 
     async def worker_tick(self) -> int:
         """Claim due jobs (and expired leases) and process them. Returns the number of jobs started."""
+        if self.kill_switch is not None and await self.kill_switch.engaged():
+            return 0  # kill switch: leave queued work untouched until it is released
         now = time.time()
         for raw in await self.redis.zrangebyscore(PROCESSING_KEY, 0, now):  # lease expired: crashed worker
             m = raw.decode() if isinstance(raw, bytes) else str(raw)
@@ -316,6 +333,16 @@ class GatewayService:
             t0 = time.perf_counter()
             try:
                 rr = await self.router.route(cls, job["messages"], job["max_tokens"], job["temperature"])
+            except KillSwitchEngaged:  # engaged mid-flight: put the job back without spending an attempt
+                await self._enqueue(
+                    ctx,
+                    job["messages"],
+                    job["max_tokens"],
+                    job["temperature"],
+                    job["fp"],
+                    int(job["attempt"]),
+                )
+                return
             except AllProvidersFailed:
                 attempt = int(job["attempt"]) + 1
                 if attempt >= self.cfg.queue.max_attempts:
@@ -345,6 +372,15 @@ class GatewayService:
                 rr.completion.provider,
                 {"deferred": True, "attempt": job["attempt"]},
             )
+
+    async def drain(self, timeout_s: float) -> int:
+        """Graceful shutdown: wait for in-flight jobs. Unfinished ones keep their lease and are re-queued by
+        another worker after LEASE_S; idempotency keeps them from committing twice. Returns jobs left."""
+        pending = [t for t in self._tasks if not t.done()]
+        if pending:
+            _, still = await asyncio.wait(pending, timeout=timeout_s)
+            return len(still)
+        return 0
 
     async def run_worker(self, stop: asyncio.Event) -> None:
         while not stop.is_set():

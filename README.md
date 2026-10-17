@@ -2,7 +2,7 @@
 
 An OpenAI-compatible LLM gateway with per-provider circuit breakers, automatic failover, hedging, a deferrable retry queue and per-tenant cost attribution. In a measured chaos run where **both local model runtimes went down for 90 s, clients still got answers for 83.9% of requests (80.0% of interactive ones) by failing over to Groq**, the only independent external provider. A Groq free-tier rate limit capped that number (details below). All four runs together produced **0 duplicate side effects across 141 duplicate submissions**.
 
-> Local docker compose only. Cloud IaC is not built yet.
+> **Deployment status: deploy-ready; not applied (no cloud account connected).** Terraform for Google Cloud Run, a CD workflow and the runbook are in the repo and pass CI, but nothing has been deployed. The measured results below are from the local docker compose stack. See [Deployment](#deployment).
 
 ## Results (real runs, raw data in `results/`)
 
@@ -107,9 +107,10 @@ flowchart LR
    * **Cost:** hedging roughly doubles cost on every hedged call. The cancelled loser may still be billed, so a paid loser is written to the ledger at its worst-case estimate.
    * **Gain:** a slow primary no longer dominates tail latency.
    * **Finding:** the 2.5 s delay was too conservative. After recovery, hedged requests took about 2.6 s even though the hedge itself answered in about 100 ms. A delay near the primary's p95 (about 0.7-1.0 s at baseline) would cut the tail.
-4. **Breaker state and health live in Redis, not in process memory.**
-   * **Gain:** a gateway restart keeps the provider-health view (`test_window_survives_new_tracker_instance`).
-   * **Price:** each attempt costs a Redis round trip, and transitions use per-process locks only. Multiple gateway workers would need a Lua or WATCH-based transition to avoid races (not built).
+4. **Breaker state, transitions and probe admission live in Redis, so any number of gateway instances share one breaker.**
+   * **Gain:** a restart keeps the provider-health view (`test_window_survives_new_tracker_instance`), and autoscaled instances agree. Every transition is one atomic Lua script: a trip is a compare-and-set on an `epoch` (two instances that see the same failures produce one transition), and half-open probes are lease tokens counted inside the script, so the in-flight probe cap holds across instances and processes (`tests/test_multi_instance.py`).
+   * **Price:** each attempt costs Redis round trips (admit, record, judge), and Redis is now a hard dependency for routing. Probe leases expire after 60 s, so a crashed instance can block half-open probing for up to that long.
+   * **History:** the chaos runs above used the earlier version (per-process locks and probe counters, one gateway process). Against that code, two instances admitted 4 probes where the cap is 2 (`results/deploy_ready_mutation_check.json`, `teeth_vs_main`).
 
 ## What did not work
 
@@ -124,7 +125,7 @@ flowchart LR
 
 ## Security
 
-**Threat model.** Untrusted callers (tenants) and untrusted model output. The assets are the provider API keys, tenants' prompts (PII), cross-tenant results, and spend. Out of scope: multi-host deployment, TLS (localhost only) and a hostile host OS.
+**Threat model.** Untrusted callers (tenants) and untrusted model output. The assets are the provider API keys, tenants' prompts (PII), cross-tenant results, and spend. Out of scope: a hostile host OS. Locally there is no TLS (localhost only); in the GCP deployment TLS terminates at Cloud Run and Redis traffic uses TLS + AUTH over the VPC.
 
 | Control | Where | Proven by (fails if the control is removed) |
 |---|---|---|
@@ -138,8 +139,15 @@ flowchart LR
 | Chaos proxy off unless `CHAOS_ENABLED=1`; admin token required; fixed upstream map (no SSRF) | `chaos.py` | `test_chaos_proxy_refuses_to_start_when_disabled`, `test_chaos_proxy_injects_and_clears_faults` |
 | Bounded Prometheus label cardinality (features past 50 per tenant become `other`) | `store.py` | `test_feature_label_cardinality_is_bounded` |
 | Admin endpoints need `X-Admin-Token` (constant-time compare) | `app.py` | `test_admin_endpoints_require_token` |
+| Chaos can never run in prod: the gateway refuses to start with `ENV=prod` + `CHAOS_ENABLED=1` (or `CHAOS_PROXY_URL`), the chaos proxy refuses `ENV=prod` outright, and providers never route through the proxy in prod; the image defaults to `ENV=prod` | `config.py`, `chaos.py`, `Dockerfile` | `test_gateway_refuses_to_start_with_chaos_enabled_in_prod`, `test_chaos_proxy_refuses_to_start_in_prod_even_when_enabled`, `test_provider_never_routes_through_chaos_proxy_in_prod`, CI `docker` job |
+| Prod fails closed on unsafe config: unknown `ENV`, local/private provider URLs (Ollama), file spend ledger, plaintext Redis, short admin token | `config.py` | `test_unknown_env_fails_closed[*]`, `test_prod_refuses_local_ollama_providers`, `test_prod_refuses_weak_settings[*]` |
+| Breaker shared across instances: one transition per trip, bounded half-open probes in total, stale probe results ignored, dead instances' leases expire | `breaker.py` | `test_concurrent_trip_is_one_transition`, `test_half_open_admits_a_bounded_number_of_probes_in_total`, `test_probe_bound_holds_through_a_random_interleaving[*]`, `test_two_processes_share_the_probe_bound`, `test_two_gateway_apps_share_breaker_state_and_probe_bound`, `test_late_probe_result_from_previous_episode_is_ignored`, `test_trip_judged_on_a_stale_epoch_is_rejected`, `test_crashed_instance_probe_leases_expire` |
+| Tenant rate limit, hedge budget and spend cap hold across instances (atomic Lua) | `store.py`, `router.py`, `spend.py` | `test_tenant_rate_limit_holds_across_instances`, `test_hedge_budget_window_is_shared`, `test_redis_spend_cap_holds_across_instances`, `test_spend_reservation_of_a_crashed_instance_expires` |
+| Kill switch: env flag or Redis key stops every provider call; deferrable work is refused, queued jobs stay put | `router.py`, `service.py`, `store.py` | `test_kill_switch_env_flag_blocks_every_provider_call`, `test_kill_switch_admin_toggle_is_instant_and_reversible`, `test_worker_leaves_queue_untouched_while_kill_switch_engaged` |
+| Tenant keys from Secret Manager (hashes only), overlap rotation and revocation; the admin API cannot mint keys in prod | `store.py`, `app.py` | `test_tenant_keys_from_secret_spec_authenticate_rotate_and_revoke`, `test_malformed_tenant_spec_fails_startup` |
+| `/metrics` (tenant names, costs) off the public port in prod: served on `127.0.0.1:8080` for the sidecar only | `app.py` | `test_metrics_leave_the_public_port_when_metrics_port_is_set` |
 
-**Mutation check:** each control above was broken one at a time and the tests re-run. **13 of 14 mutants were killed.** The survivor removed only the logging-filter redaction while the record builder still redacted. That is defence in depth by design; removing both is killed.
+**Mutation check:** each original control was broken one at a time and the tests re-run. **13 of 14 mutants were killed.** The survivor removed only the logging-filter redaction while the record builder still redacted. That is defence in depth by design; removing both is killed. The deploy-readiness controls (new rows above) got their own pass: **18 of 18 mutants killed**, run against fakeredis and a real Redis 7 (`results/deploy_ready_mutation_check.json`).
 
 Other controls:
 * Request bodies are capped (64 KB, 8000 prompt chars, 32 messages), and `max_tokens` is capped per class.
@@ -149,10 +157,12 @@ Other controls:
 * The container runs as non-root (uid 10001), and every port binds to 127.0.0.1.
 
 **Residual risk:**
-* `/metrics` is unauthenticated (localhost only) and exposes tenant names and costs.
+* `/metrics` is unauthenticated: localhost-only locally, and on a localhost-only port in Cloud Run. It exposes tenant names and costs to anything inside the instance.
 * SHA-256 without a pepper is fine for 256-bit random keys but not for low-entropy ones.
 * The chaos proxy forwards the gateway's provider `Authorization` headers. It is a localhost dev tool.
-* Single-process breaker locks (see the trade-offs above).
+* Multi-instance behaviour is proven by tests (fakeredis, a real Redis 7 in CI, two OS processes), not by a load test on real Cloud Run.
+* Prod is public at the Cloud Run edge (`public_invoker = true`) with app-level tenant-key auth; there is no load balancer / Cloud Armor in front.
+* The Memorystore AUTH string is a GCP-generated attribute and therefore present in Terraform state. Restrict the state bucket.
 * Regex redaction misses PII in unusual formats.
 
 **OWASP LLM Top 10 (2025) mapping:**
@@ -182,11 +192,12 @@ docker exec p3-gateway-ollama-cpu-1 ollama pull qwen2.5:0.5b
 CHAOS_ENABLED=1 uv run python -m gateway.chaos &
 CHAOS_ENABLED=1 CHAOS_PROXY_URL=http://127.0.0.1:8113 uv run python -m gateway.app &
 
+uv run python -m gateway.migrate         # versioned Redis keyspace migrations (/readyz is 503 until run)
 uv run python scripts/smoke.py
 uv run python scripts/loadgen.py --provider ollama,ollama_cpu --outage 90 --rate 0.7 --out results/local_host_outage_run.json
 uv run python scripts/analyze.py          # -> results/summary.json
 uv sync --group screenshot && uv run playwright install chromium && uv run python scripts/grafana_screenshot.py
-uv run pytest -q                          # 57 tests, no secrets or network needed
+uv run pytest -q                          # 117 tests; 17 need a real Redis (REDIS_TEST_URL), else skipped
 docker compose -p p3-gateway stop
 ```
 
@@ -199,3 +210,74 @@ curl -s 127.0.0.1:8103/v1/chat/completions -H "Authorization: Bearer $TENANT_KEY
 ```
 
 Tenants are created with `POST /admin/tenants {"tenant":"acme","rpm":600}` and `X-Admin-Token`. The key is returned once.
+
+## Deployment
+
+**Status: deploy-ready; not applied (no cloud account connected).** Target: Google Cloud Run, provisioned by
+Terraform. Docs: [docs/RUNBOOK.md](docs/RUNBOOK.md) (bootstrap, deploy, verify, rollback, secret rotation,
+kill switch, incidents) and [docs/SLO.md](docs/SLO.md) (SLIs/SLOs and a monthly cost estimate, ≈ $170 prod /
+≈ $62 staging plus capped LLM spend; an estimate from GCP list prices).
+
+```mermaid
+flowchart LR
+  GH[GitHub Actions<br/>deploy.yml, WIF keyless] -->|image by digest| AR[(Artifact Registry)]
+  GH -->|migrate job, canary, smoke, traffic shift| API
+  C[Tenants<br/>Bearer tenant key] --> API[Cloud Run service<br/>gateway, ENV=prod, autoscaling<br/>+ GMP sidecar]
+  API -->|Direct VPC egress, TLS + AUTH| R[(Memorystore Redis<br/>breakers, health, idempotency,<br/>queue, limits, spend cap)]
+  WP[Cloud Run worker pool<br/>deferrable-queue worker] --> R
+  MJ[Cloud Run job<br/>gateway.migrate] --> R
+  API --> G[Groq]
+  API -.->|only when keyed / funded| AN[Anthropic / HF]
+  WP --> G
+  SM[(Secret Manager<br/>provider keys, admin token,<br/>tenant key hashes, Redis AUTH)] --> API & WP & MJ
+  API -->|localhost:8080/metrics| GMP[Managed Service for Prometheus] --> GF[Grafana / Metrics Explorer]
+```
+
+What is in the repo:
+
+| Piece | Where |
+|---|---|
+| Terraform module + `envs/staging`, `envs/prod` (tfvars, pinned `hashicorp/google` 8.7.0, committed `.terraform.lock.hcl`, GCS backend via `-backend-config`) | `infra/terraform/` |
+| Cloud Run v2 **service** (API): min/max instances, CPU/memory, concurrency 40, startup probe `/readyz`, liveness `/healthz`, ingress, GMP sidecar | `modules/gateway/run.tf` |
+| Deferrable-queue worker as a Cloud Run **worker pool** (`google_cloud_run_v2_worker_pool`, present in provider 8.7.0; always on, manual scaling, no ingress) | `modules/gateway/run.tf` |
+| Migrations: numbered modules in `src/gateway/migrations/`, applied by the Cloud Run **job** `gateway.migrate` before each rollout, never at import | `modules/gateway/run.tf`, `src/gateway/migrate.py` |
+| Memorystore for Redis (STANDARD_HA in prod, BASIC in staging), private IP, AUTH, TLS, reached through **Direct VPC egress** (no connector) | `modules/gateway/network.tf` |
+| One service account per role (api, worker, migrate) with secret-level grants; deploy SA gets only run.developer, actAs on those SAs, run.invoker and AR writer | `modules/gateway/iam.tf` |
+| Secret Manager secrets created **empty**; values are added with `gcloud secrets versions add` | `modules/gateway/main.tf`, RUNBOOK §2 |
+| CD: build once, deploy the digest to staging (migrate, no-traffic canary, smoke `/healthz` + `/readyz`, promote), then prod behind the `production` environment approval (canary 10%, soak, 100%), automatic rollback | `.github/workflows/deploy.yml`, `scripts/smoke_deploy.sh` |
+| CI: `terraform fmt -check`, `init -backend=false` + `validate`, tflint (terraform + google rulesets), checkov (one inline-justified skip: CMEK for Artifact Registry) | `.github/workflows/ci.yml` |
+
+**One-time GCP bootstrap** (exact commands in RUNBOOK §1-2): create a GCS state bucket; create a Workload
+Identity pool + OIDC provider restricted to this repository and a `gh-deploy` service account; set the repo
+variables `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`; create the `staging` and
+`production` environments (required reviewer on `production`); `terraform apply` the registry, secrets and
+Redis; add secret versions; push a first image; apply the rest. Until `GCP_PROJECT_ID` is set, every deploy job
+is skipped and the workflow passes.
+
+**Prod differs from the measured setup (honest):**
+* **Fewer independent providers.** Prod uses `config/gateway.prod.yaml`: external providers only. Ollama (GPU host
+  and CPU container) is local/dev only, and the gateway refuses to start in prod with a local/private provider
+  URL. Today only Groq is keyed, so prod has **one** provider and **no failover target**: when Groq's breaker
+  opens, interactive requests fail fast (503) and deferrable ones queue. Anthropic turns on when
+  `ANTHROPIC_API_KEY` exists and its placeholder model id is verified; HF when the account is funded (402).
+  The availability numbers in the Results table do not transfer to this configuration.
+* **Autoscaling** (prod `min 1 / max 10`, staging `0 / 3`) relies on the Redis-shared breaker, limits and spend
+  cap. That is proven by tests that run two gateway instances (and two OS processes) on one Redis in CI, not by
+  a load test on Cloud Run. Set `max_instances = 1` to fall back to a single instance.
+* **Spend cap** in prod is a monthly per-project cap enforced atomically in Redis (`SPEND_BACKEND=redis`); the
+  shared local JSONL ledger is dev-only. A Redis data loss resets the month's counter; the per-call JSON logs in
+  Cloud Logging are the durable record.
+* **Observability:** Google Cloud Managed Service for Prometheus via the documented Cloud Run sidecar
+  (`cloud-run-gmp-sidecar:1.2.0`, default config scraping `localhost:8080/metrics`). The Grafana dashboard JSON
+  now takes a `datasource` variable, so it works on the local Prometheus and on a GMP-backed Grafana data source.
+  Worker-pool metrics are not exported in GCP (the sidecar is documented for services/jobs); queue depth is
+  still reported by the API instances.
+
+**Deploy-ready (built and checked in CI)** vs **assumed (not verified without a project):**
+
+| Deploy-ready | Assumed / not verified |
+|---|---|
+| Terraform validates against `hashicorp/google` 8.7.0 schemas; tflint and checkov clean | that `terraform apply` succeeds first time (quotas, org policies such as `invoker_iam_disabled`, API enablement timing) |
+| App: `/healthz` vs `/readyz`, graceful shutdown, env-only config, JSON logs, migrations job, kill switch, prod guards, Secret Manager tenant keys (all tested) | `gcloud run deploy --container`, `gcloud run worker-pools deploy` and the identity-token audience behave exactly as scripted in `deploy.yml` |
+| Image refuses prod + chaos (CI docker job) | GMP sidecar CPU sizing (1 vCPU is conservative), and that the default scrape config is enough |
+| Shared breaker semantics on real Redis 7 (CI service container) | Memorystore TLS/AUTH connection details from Cloud Run (server CA via `REDIS_CA_CERT_PEM`) |

@@ -36,6 +36,15 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      # Real Redis 7 for the multi-instance tests (Lua breaker transitions, shared limits, two processes).
+      redis:
+        image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 2s --health-retries 15
+    env:
+      REDIS_TEST_URL: redis://127.0.0.1:6379/15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,8 +54,8 @@ jobs:
           version: ${{ env.UV_VERSION }}
           python-version: "3.12"
       - run: uv sync --frozen
-      # Tests use fakeredis and a scripted fake provider: no secrets, no network LLM calls.
-      - run: uv run pytest -q
+      # Tests use fakeredis, a real Redis service and a scripted fake provider: no secrets, no LLM calls.
+      - run: uv run pytest -q -rs
 
   security:
     runs-on: ubuntu-24.04
@@ -82,21 +91,88 @@ jobs:
           persist-credentials: false
       - name: build image
         run: docker build -t self-healing-llm-gateway:ci .
-      - name: container starts as non-root and serves /healthz with redis
+      - name: image refuses to start with chaos enabled in prod (image default ENV=prod)
+        run: |
+          set +e
+          out=$(docker run --rm -e CHAOS_ENABLED=1 -e GROQ_API_KEY=x self-healing-llm-gateway:ci 2>&1)
+          code=$?
+          set -e
+          echo "$out" | tail -3
+          test "$code" -ne 0
+          echo "$out" | grep -q "CHAOS_ENABLED=1 is refused when ENV=prod"
+          set +e
+          tok="$(openssl rand -hex 16)"
+          out=$(docker run --rm -e CHAOS_ENABLED=1 -e CHAOS_ADMIN_TOKEN="$tok" \
+            self-healing-llm-gateway:ci python -m gateway.chaos 2>&1)
+          code=$?
+          set -e
+          test "$code" -ne 0
+          echo "$out" | grep -q "chaos proxy never runs when ENV=prod"
+      - name: container runs as non-root; /healthz is up; /readyz needs the migration
         run: |
           docker network create gwci
-          docker run -d --name redis --network gwci redis:7.4.11-alpine
-          docker run -d --name gw --network gwci -e REDIS_URL=redis://redis:6379/0 \
-            -e LLM_SPEND_LEDGER=/tmp/ledger.jsonl self-healing-llm-gateway:ci
+          docker run -d --name redis --network gwci redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+          docker run -d --name gw --network gwci -e ENV=dev -e GATEWAY_CONFIG=/app/config/gateway.yaml \
+            -e REDIS_URL=redis://redis:6379/0 -e LLM_SPEND_LEDGER=/tmp/ledger.jsonl self-healing-llm-gateway:ci
+          probe() { docker exec gw python -c "import sys,urllib.request,urllib.error
+          try: print(urllib.request.urlopen('http://127.0.0.1:8103$1', timeout=3).status)
+          except urllib.error.HTTPError as e: print(e.code)"; }
           for i in $(seq 1 30); do
-            if docker exec gw python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8103/healthz')"; then break; fi
+            if [ "$(probe /healthz 2>/dev/null)" = "200" ]; then break; fi
             sleep 2
           done
           test "$(docker exec gw id -u)" = "10001"
-          docker exec gw python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8103/healthz').read())"
+          test "$(probe /healthz)" = "200"
+          test "$(probe /readyz)" = "503"
+          docker run --rm --network gwci -e ENV=dev -e REDIS_URL=redis://redis:6379/0 \
+            self-healing-llm-gateway:ci python -m gateway.migrate
+          test "$(probe /readyz)" = "200"
+          docker logs gw 2>&1 | tail -5
       - name: trivy image scan (HIGH/CRITICAL, fixed)
         run: >
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
           aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
           image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
           self-healing-llm-gateway:ci
+
+  terraform:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+      - name: terraform init (no backend) + validate
+        run: |
+          for d in envs/staging envs/prod modules/gateway; do
+            echo "::group::$d"
+            terraform -chdir="$d" init -backend=false -input=false -lockfile=readonly 2>/dev/null \
+              || terraform -chdir="$d" init -backend=false -input=false
+            terraform -chdir="$d" validate
+            echo "::endgroup::"
+          done
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v0.64.0
+      - name: tflint (terraform + google rulesets)
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # plugin download rate limit only; read-only token
+        run: |
+          tflint --init --config "$PWD/.tflint.hcl"
+          for d in envs/staging envs/prod modules/gateway; do
+            tflint --chdir="$d" --config "$PWD/.tflint.hcl"
+          done
+      - name: checkov (IaC scan; skips are justified inline)
+        run: >
+          docker run --rm -v "$PWD:/tf"
+          bridgecrew/checkov:3.3.29@sha256:3cc125b5337717b7303dbddd4e79374c120687b5ff6a24f9abdad56b562469f3
+          -d /tf --framework terraform --compact --quiet

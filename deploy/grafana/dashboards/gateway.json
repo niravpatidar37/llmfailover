@@ -23,7 +23,7 @@
       "title": "Client availability (dashboard range)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 0,
@@ -36,7 +36,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "sum(increase(gateway_client_requests_total{status=~\"200|202\"}[$__range])) / sum(increase(gateway_client_requests_total[$__range]))",
           "legendFormat": "availability",
@@ -87,7 +87,7 @@
       "title": "Requests/s by provider (successful attempts)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 4,
@@ -100,9 +100,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"ok\"}[30s]))",
+          "expr": "sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"ok\"}[$__rate_interval]))",
           "legendFormat": "{{provider}}",
           "interval": "5s"
         },
@@ -110,9 +110,9 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum(rate(gateway_client_requests_total[30s]))",
+          "expr": "sum(rate(gateway_client_requests_total[$__rate_interval]))",
           "legendFormat": "client total",
           "interval": "5s"
         }
@@ -140,7 +140,7 @@
       "title": "Circuit state per provider (green closed, yellow half-open, red open)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 14,
@@ -153,7 +153,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "max by (provider) (gateway_circuit_state)",
           "legendFormat": "{{provider}}",
@@ -240,7 +240,7 @@
       "title": "Error rate by provider (attempts)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 0,
@@ -253,9 +253,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "(sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"error\"}[30s])) or 0 * sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"ok\"}[30s]))) / sum by (provider) (rate(gateway_provider_attempts_total{outcome=~\"ok|error\"}[30s]))",
+          "expr": "(sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"error\"}[$__rate_interval])) or 0 * sum by (provider) (rate(gateway_provider_attempts_total{outcome=\"ok\"}[$__rate_interval]))) / sum by (provider) (rate(gateway_provider_attempts_total{outcome=~\"ok|error\"}[$__rate_interval]))",
           "legendFormat": "{{provider}}",
           "interval": "5s"
         },
@@ -263,9 +263,9 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum(rate(gateway_client_requests_total{status!~\"200|202\"}[30s])) / sum(rate(gateway_client_requests_total[30s]))",
+          "expr": "sum(rate(gateway_client_requests_total{status!~\"200|202\"}[$__rate_interval])) / sum(rate(gateway_client_requests_total[$__rate_interval]))",
           "legendFormat": "client-visible error rate",
           "interval": "5s"
         }
@@ -295,7 +295,7 @@
       "title": "p95 latency",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 12,
@@ -308,7 +308,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "histogram_quantile(0.95, sum by (le, provider) (rate(gateway_provider_latency_seconds_bucket[1m])))",
           "legendFormat": "{{provider}} p95",
@@ -318,7 +318,7 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "histogram_quantile(0.95, sum by (le) (rate(gateway_client_request_seconds_bucket[1m])))",
           "legendFormat": "client p95 (all classes)",
@@ -348,7 +348,7 @@
       "title": "Failover events",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 0,
@@ -361,9 +361,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum by (from_provider, to_provider, reason) (increase(gateway_failovers_total[30s]))",
+          "expr": "sum by (from_provider, to_provider, reason) (increase(gateway_failovers_total[$__rate_interval]))",
           "legendFormat": "{{from_provider}} -> {{to_provider}} ({{reason}})",
           "interval": "5s"
         }
@@ -397,7 +397,7 @@
       "title": "Errors by taxonomy",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 12,
@@ -410,9 +410,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum by (provider, error_type) (increase(gateway_provider_errors_total[30s]))",
+          "expr": "sum by (provider, error_type) (increase(gateway_provider_errors_total[$__rate_interval]))",
           "legendFormat": "{{provider}} {{error_type}}",
           "interval": "5s"
         }
@@ -446,7 +446,7 @@
       "title": "Deferrable queue depth",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 0,
@@ -459,9 +459,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "gateway_queue_depth",
+          "expr": "max(gateway_queue_depth)",
           "legendFormat": "queued + processing",
           "interval": "5s"
         },
@@ -469,9 +469,9 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum by (event) (increase(gateway_queue_events_total[30s]))",
+          "expr": "sum by (event) (increase(gateway_queue_events_total[$__rate_interval]))",
           "legendFormat": "{{event}}",
           "interval": "5s"
         }
@@ -499,7 +499,7 @@
       "title": "Cost per hour by tenant / feature (USD, list-price estimate)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 8,
@@ -512,7 +512,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "sum by (tenant, feature) (rate(gateway_cost_usd_total[5m])) * 3600",
           "legendFormat": "{{tenant}} / {{feature}}",
@@ -542,7 +542,7 @@
       "title": "Chaos: injected fault & hedging",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 16,
@@ -555,7 +555,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "max by (provider) (chaos_fault_error_rate)",
           "legendFormat": "chaos error_rate {{provider}}",
@@ -565,9 +565,9 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "sum by (outcome) (increase(gateway_hedges_total[30s]))",
+          "expr": "sum by (outcome) (increase(gateway_hedges_total[$__rate_interval]))",
           "legendFormat": "hedge {{outcome}}",
           "interval": "5s"
         }
@@ -595,7 +595,7 @@
       "title": "Sliding-window health (Redis)",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 0,
@@ -608,9 +608,9 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
-          "expr": "gateway_health_success_rate",
+          "expr": "max by (provider) (gateway_health_success_rate)",
           "legendFormat": "{{provider}} success rate",
           "interval": "5s"
         }
@@ -640,7 +640,7 @@
       "title": "Tokens/s by tenant",
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "gridPos": {
         "x": 12,
@@ -653,7 +653,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "expr": "sum by (tenant, direction) (rate(gateway_tokens_total[1m]))",
           "legendFormat": "{{tenant}} {{direction}}",
@@ -682,6 +682,18 @@
     "list": []
   },
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "options": []
+      }
+    ]
   }
 }

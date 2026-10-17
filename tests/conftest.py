@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Any
 import fakeredis
 import httpx
 import pytest
+from redis.asyncio import Redis
 
 from gateway.app import create_app
 from gateway.config import GatewayConfig, ProviderConfig, Settings
@@ -105,6 +107,33 @@ def fail(et: ErrorType = ErrorType.SERVER_ERROR, delay: float = 0.0) -> Behavior
 @pytest.fixture
 def redis() -> fakeredis.FakeAsyncRedis:
     return fakeredis.FakeAsyncRedis()
+
+
+REAL_REDIS_URL = os.environ.get("REDIS_TEST_URL", "")
+
+
+@pytest.fixture(params=["fakeredis", "real-redis"])
+async def redis_pair(request: pytest.FixtureRequest) -> AsyncIterator[tuple[Any, Any]]:
+    """Two independent clients on ONE Redis, standing in for two gateway instances.
+
+    ``fakeredis``: one FakeServer, two clients (Lua via lupa). ``real-redis``: a real Redis 7 from
+    REDIS_TEST_URL (CI runs a redis service container); skipped locally when unset.
+    """
+    if request.param == "fakeredis":
+        server = fakeredis.FakeServer()
+        a: Any = fakeredis.FakeAsyncRedis(server=server)
+        b: Any = fakeredis.FakeAsyncRedis(server=server)
+    else:
+        if not REAL_REDIS_URL:
+            pytest.skip("REDIS_TEST_URL not set (CI runs these against a real Redis service)")
+        a = Redis.from_url(REAL_REDIS_URL)
+        b = Redis.from_url(REAL_REDIS_URL)
+        await a.flushdb()
+    yield a, b
+    if request.param != "fakeredis":
+        await a.flushdb()
+    await a.aclose()
+    await b.aclose()
 
 
 @pytest.fixture

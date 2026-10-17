@@ -22,3 +22,10 @@ wandb/
 logs/
 *.log
 results/tmp/
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+infra/terraform/modules/**/.terraform.lock.hcl

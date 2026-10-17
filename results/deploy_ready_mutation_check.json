@@ -1,0 +1,121 @@
+{
+  "what": "mutation check of the deploy-readiness controls (feat/deploy-ready); each mutant applied alone, the listed tests run against fakeredis AND a real Redis 7.4.11 container (REDIS_TEST_URL), file restored after",
+  "date": "2026-10-17",
+  "killed": 18,
+  "total": 18,
+  "mutants": [
+    {
+      "result": "KILLED",
+      "file": "src/gateway/breaker.py",
+      "removed_or_changed": "if redis.call('ZCARD', probes) >= tonumber(ARGV[7]) or tonumber(ARGV[5",
+      "pytest": "1 failed, 8 passed in 0.37s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/breaker.py",
+      "removed_or_changed": "if (redis.call('HGET', h, 'epoch') or '0') ~= ARGV[3] then return 0 en",
+      "pytest": "1 failed, 4 passed in 0.20s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/breaker.py",
+      "removed_or_changed": "if redis.call('HGET', h, 'state') ~= 'closed' then return 0 end\nif (re",
+      "pytest": "1 failed, 4 passed in 0.22s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/breaker.py",
+      "removed_or_changed": "if redis.call('ZREM', probes, token) == 0 then return {'stale', ''} en",
+      "pytest": "1 failed, 18 passed in 1.55s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/breaker.py",
+      "removed_or_changed": "redis.call('DEL', probes)",
+      "pytest": "1 failed, 18 passed in 1.59s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/router.py",
+      "removed_or_changed": "if self.kill_switch is not None and await self.kill_switch():\n        ",
+      "pytest": "1 failed, 14 passed in 0.22s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/service.py",
+      "removed_or_changed": "if self.kill_switch is not None and await self.kill_switch.engaged():\n",
+      "pytest": "1 failed, 16 passed in 0.26s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/config.py",
+      "removed_or_changed": "if chaos_requested():\n        raise UnsafeConfiguration",
+      "pytest": "1 failed, 1 passed in 0.15s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/chaos.py",
+      "removed_or_changed": "if runtime_env() == \"prod\":\n        raise ChaosDisabled",
+      "pytest": "1 failed, 3 passed in 0.17s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/config.py",
+      "removed_or_changed": "and os.environ.get(\"ENV\", \"dev\").strip().lower() != \"prod\":",
+      "pytest": "1 failed, 4 passed in 0.15s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/config.py",
+      "removed_or_changed": "local = [n for n in cfg.enabled_providers() if _is_local_host(cfg.prov",
+      "pytest": "1 failed, 11 passed in 0.17s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/store.py",
+      "removed_or_changed": "if redis.call('ZCARD', key) >= limit then",
+      "pytest": "1 failed, 25 passed in 4.23s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/spend.py",
+      "removed_or_changed": "if total + tonumber(ARGV[2]) > tonumber(ARGV[3]) then return 0 end",
+      "pytest": "1 failed, 29 passed in 4.55s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/app.py",
+      "removed_or_changed": "ok = ok and ver >= REQUIRED_VERSION",
+      "pytest": "1 failed, 18 passed in 0.24s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/app.py",
+      "removed_or_changed": "return JSONResponse({\"status\": \"ok\"})",
+      "pytest": "1 failed, 17 passed in 0.56s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/store.py",
+      "removed_or_changed": "for h in old - set(hashes):\n                    pipe.delete(\"gw:apikey",
+      "pytest": "1 failed, 21 passed in 0.29s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/app.py",
+      "removed_or_changed": "if not settings.allow_admin_tenant_create:",
+      "pytest": "1 failed, 21 passed in 0.30s"
+    },
+    {
+      "result": "KILLED",
+      "file": "src/gateway/redact.py",
+      "removed_or_changed": "return json.dumps(redact_obj(obj))",
+      "pytest": "1 failed, 26 passed in 0.32s"
+    }
+  ],
+  "teeth_vs_main": {
+    "test": "two gateway apps sharing one Redis: half-open probes admitted in total during a 20-request burst after cooldown (cap 2)",
+    "main_8b92610": "FAILED: 4 probes admitted (per-process probe counters)",
+    "feat_deploy_ready": "PASSED: 2 probes admitted"
+  }
+}

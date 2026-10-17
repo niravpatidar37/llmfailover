@@ -20,15 +20,19 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from redis.asyncio import Redis
 
 from .breaker import CircuitBreakers
-from .config import GatewayConfig, Settings, get_config, load_secrets
+from .config import GatewayConfig, Settings, check_runtime_safety, get_config, load_secrets
 from .health import HealthTracker
+from .logging_setup import JsonFormatter
 from .metrics import Metrics
+from .migrate import current_version
+from .migrations import REQUIRED_VERSION
 from .providers import LiteLLMCaller, ProviderCaller
 from .redact import RedactingFilter
+from .redis_client import make_redis
 from .router import Router
 from .service import GatewayService, HandleResult, RequestContext, error_body
-from .spend import SpendLedger
-from .store import IdempotencyStore, TenantStore
+from .spend import RedisSpendLedger, SpendGuard, SpendLedger
+from .store import IdempotencyStore, KillSwitch, TenantStore
 
 TENANT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 FEATURE_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
@@ -56,6 +60,10 @@ class TenantCreate(BaseModel):
     rpm: int = Field(default=600, ge=1, le=100_000)
 
 
+class KillSwitchBody(BaseModel):
+    engaged: bool
+
+
 def configure_logging(path: str | None) -> None:
     lg = logging.getLogger("gateway.requests")
     if getattr(lg, "_gw_configured", False):
@@ -63,7 +71,7 @@ def configure_logging(path: str | None) -> None:
     handler: logging.Handler = (
         logging.FileHandler(path, encoding="utf-8") if path else logging.StreamHandler(sys.stdout)
     )
-    handler.setFormatter(logging.Formatter("%(message)s"))
+    handler.setFormatter(logging.Formatter("%(message)s") if path else JsonFormatter())
     lg.addHandler(handler)
     lg.addFilter(RedactingFilter())
     lg.setLevel(logging.INFO)
@@ -84,27 +92,39 @@ def create_app(
     settings: Settings | None = None,
     redis: Redis | None = None,
     caller: ProviderCaller | None = None,
-    ledger: SpendLedger | None = None,
+    ledger: SpendLedger | SpendGuard | None = None,
     start_background: bool = True,
 ) -> FastAPI:
     if cfg is None or settings is None:
         load_secrets()
     cfg = cfg or get_config()
     settings = settings or Settings.from_env()
-    redis = redis or Redis.from_url(settings.redis_url)
+    log = logging.getLogger("gateway")
+    for w in check_runtime_safety(cfg, settings):  # raises UnsafeConfiguration (fail closed) before anything
+        log.warning(json.dumps({"event": "config_warning", "detail": w}))
+    owns_redis = redis is None
+    redis = redis or make_redis(settings)
     metrics = Metrics()
     health = HealthTracker(redis, cfg.breaker.window_s)
     breakers = CircuitBreakers(
         redis, health, cfg.breaker, {n: p.latency_budget_ms for n, p in cfg.providers.items()}, metrics
     )
     if ledger is None:
-        ledger = SpendLedger(
-            settings.ledger_path, settings.project, settings.project_cap_usd, settings.global_cap_usd
-        )
-    router = Router(cfg, breakers, health, metrics, ledger, caller or LiteLLMCaller())
-    service = GatewayService(cfg, redis, router, metrics)
+        if settings.spend_backend == "redis":
+            ledger = RedisSpendLedger(redis, settings.project, settings.project_cap_usd)
+        else:
+            ledger = SpendLedger(
+                settings.ledger_path, settings.project, settings.project_cap_usd, settings.global_cap_usd
+            )
+    kill = KillSwitch(redis, settings.kill_switch)
+    router = Router(
+        cfg, breakers, health, metrics, ledger, caller or LiteLLMCaller(), kill_switch=kill.engaged
+    )
+    service = GatewayService(cfg, redis, router, metrics, kill)
     tenants = TenantStore(redis)
     configure_logging(settings.request_log_path)
+    serve_api = settings.role in ("all", "api")
+    run_worker = settings.role in ("all", "worker")
 
     async def ticker(stop: asyncio.Event) -> None:
         while not stop.is_set():
@@ -129,15 +149,39 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if settings.tenant_keys_json and serve_api:
+            # Secret Manager is the source of truth for tenant keys (hashes only). Seeding Redis here also
+            # repairs a Memorystore that lost its data. A malformed spec fails startup (fail closed).
+            n = await tenants.sync_from_spec(json.loads(settings.tenant_keys_json))
+            log.info(json.dumps({"event": "tenant_keys_synced", "live_keys": n}))
+        metrics_server = None
+        if settings.metrics_port:
+            from prometheus_client import start_http_server
+
+            metrics_server, _ = start_http_server(
+                settings.metrics_port, addr=settings.metrics_bind, registry=metrics.registry
+            )
         stop = asyncio.Event()
         tasks: list[asyncio.Task[None]] = []
         if start_background:
-            tasks = [asyncio.create_task(service.run_worker(stop)), asyncio.create_task(ticker(stop))]
+            tasks.append(asyncio.create_task(ticker(stop)))
+            if run_worker:
+                tasks.append(asyncio.create_task(service.run_worker(stop)))
+        app.state.draining = False
         yield
+        # Graceful shutdown (SIGTERM from Cloud Run): fail readiness, stop claiming jobs, drain in-flight.
+        app.state.draining = True
         stop.set()
         for t in tasks:
             with contextlib.suppress(Exception):
                 await t
+        left = await service.drain(settings.shutdown_grace_s)
+        log.info(json.dumps({"event": "shutdown", "jobs_left_on_lease": left}))
+        if metrics_server is not None:
+            metrics_server.shutdown()
+        if owns_redis:
+            with contextlib.suppress(Exception):
+                await redis.aclose()
 
     app = FastAPI(
         title="Self-Healing LLM Gateway",
@@ -154,6 +198,9 @@ def create_app(
     app.state.tenants = tenants
     app.state.redis = redis
     app.state.refresh_gauges = refresh_gauges
+    app.state.kill_switch = kill
+    app.state.settings = settings
+    app.state.draining = False
 
     def is_admin(request: Request) -> bool:
         tok = request.headers.get("x-admin-token", "")
@@ -165,7 +212,6 @@ def create_app(
             return None
         return await tenants.resolve(auth[7:].strip())
 
-    @app.post("/v1/chat/completions")
     async def chat_completions(request: Request) -> Response:
         tenant = await authenticate(request)
         if tenant is None:
@@ -249,7 +295,6 @@ def create_app(
         )
         return _json(await service.handle(ctx, messages, max_tokens, req.temperature))
 
-    @app.get("/v1/requests/{request_id}")
     async def get_request(request_id: str, request: Request) -> Response:
         tenant = await authenticate(request)
         if tenant is None:
@@ -273,21 +318,49 @@ def create_app(
 
     @app.get("/healthz")
     async def healthz() -> Response:
+        """Liveness: the process and its event loop respond. No dependency checks, so a Redis blip does
+        not make Cloud Run restart every instance at once."""
+        return JSONResponse({"status": "ok"})
+
+    @app.get("/readyz")
+    async def readyz() -> Response:
+        """Readiness/startup: Redis reachable, keyspace migrated, not draining."""
+        body: dict[str, Any] = {"role": settings.role, "env": settings.env}
+        ok = not app.state.draining
+        body["draining"] = app.state.draining
         try:
             await redis.ping()
-        except Exception:
-            return JSONResponse({"status": "degraded", "redis": False}, status_code=503)
-        return JSONResponse({"status": "ok", "redis": True})
+            body["redis"] = True
+            ver = await current_version(redis)
+            body["schema"] = {"current": ver, "required": REQUIRED_VERSION}
+            ok = ok and ver >= REQUIRED_VERSION
+            body["kill_switch"] = await kill.engaged()
+        except Exception as exc:
+            body["redis"] = False
+            body["error"] = type(exc).__name__
+            ok = False
+        body["providers_enabled"] = cfg.enabled_providers()
+        ok = ok and bool(body["providers_enabled"])
+        body["status"] = "ready" if ok else "not_ready"
+        return JSONResponse(body, status_code=200 if ok else 503)
 
-    @app.get("/metrics")
-    async def prom_metrics() -> Response:
-        return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
+    if settings.metrics_port is None:
+
+        @app.get("/metrics")
+        async def prom_metrics() -> Response:
+            return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
 
     # ---- admin (X-Admin-Token) --------------------------------------------------------------------
-    @app.post("/admin/tenants")
     async def create_tenant(body: TenantCreate, request: Request) -> Response:
         if not is_admin(request):
             return _err(403, "admin token required", "permission_error", "admin_only")
+        if not settings.allow_admin_tenant_create:
+            return _err(
+                403,
+                "tenant keys are managed in Secret Manager (TENANT_KEYS_JSON) in this environment",
+                "permission_error",
+                "managed_by_secret_manager",
+            )
         if not TENANT_RE.match(body.tenant):
             return _err(400, "malformed tenant", "invalid_request_error", "bad_metadata")
         key = await tenants.create(body.tenant, body.rpm)
@@ -300,7 +373,6 @@ def create_app(
             }
         )
 
-    @app.get("/admin/providers")
     async def providers(request: Request) -> Response:
         if not is_admin(request):
             return _err(403, "admin token required", "permission_error", "admin_only")
@@ -310,19 +382,16 @@ def create_app(
             out.append({**st.as_dict(), "breaker": await breakers.state(p)})
         return JSONResponse({"providers": out, "queue_depth": await service.queue_depth()})
 
-    @app.get("/admin/breaker/events")
     async def breaker_events(request: Request, since: float = 0.0) -> Response:
         if not is_admin(request):
             return _err(403, "admin token required", "permission_error", "admin_only")
         return JSONResponse({"events": await breakers.events(since)})
 
-    @app.get("/admin/costs")
     async def costs(request: Request) -> Response:
         if not is_admin(request):
             return _err(403, "admin token required", "permission_error", "admin_only")
         return JSONResponse({"usd_by_tenant_feature": await service.costs.summary(redis)})
 
-    @app.post("/admin/side-effects")
     async def side_effects(request: Request) -> Response:
         if not is_admin(request):
             return _err(403, "admin token required", "permission_error", "admin_only")
@@ -332,6 +401,28 @@ def create_app(
         )
         return JSONResponse({"counts": counts})
 
+    async def get_kill_switch(request: Request) -> Response:
+        if not is_admin(request):
+            return _err(403, "admin token required", "permission_error", "admin_only")
+        return JSONResponse({"engaged": await kill.engaged(), "env_flag": settings.kill_switch})
+
+    async def put_kill_switch(body: KillSwitchBody, request: Request) -> Response:
+        if not is_admin(request):
+            return _err(403, "admin token required", "permission_error", "admin_only")
+        await kill.set(body.engaged)
+        log.warning(json.dumps({"event": "kill_switch_changed", "engaged": body.engaged}))
+        return JSONResponse({"engaged": await kill.engaged(), "env_flag": settings.kill_switch})
+
+    if serve_api:
+        app.add_api_route("/v1/chat/completions", chat_completions, methods=["POST"])
+        app.add_api_route("/v1/requests/{request_id}", get_request, methods=["GET"])
+        app.add_api_route("/admin/tenants", create_tenant, methods=["POST"])
+        app.add_api_route("/admin/providers", providers, methods=["GET"])
+        app.add_api_route("/admin/breaker/events", breaker_events, methods=["GET"])
+        app.add_api_route("/admin/costs", costs, methods=["GET"])
+        app.add_api_route("/admin/side-effects", side_effects, methods=["POST"])
+        app.add_api_route("/admin/kill-switch", get_kill_switch, methods=["GET"])
+        app.add_api_route("/admin/kill-switch", put_kill_switch, methods=["PUT"])
     return app
 
 
@@ -340,12 +431,25 @@ def main() -> None:  # pragma: no cover - process entry point
 
     import uvicorn
 
+    from .logging_setup import configure_logging as configure_json_logging
+
     load_secrets()
+    configure_json_logging()
+    settings = Settings.from_env()
     host = os.environ.get("GATEWAY_HOST", "127.0.0.1")
-    port = int(os.environ.get("GATEWAY_PORT", "8103"))
+    # Cloud Run services inject PORT; local runs and the worker pool set GATEWAY_PORT. Default 8103.
+    port = int(os.environ.get("GATEWAY_PORT") or os.environ.get("PORT") or "8103")
     # keep-alive longer than typical client pools: with uvicorn's 5 s default, a client reusing an idle
     # connection can race the server closing it (we saw one client ReadError in the first chaos run).
-    uvicorn.run(create_app(), host=host, port=port, log_level="warning", timeout_keep_alive=75)
+    # Graceful shutdown stays inside Cloud Run's 10 s SIGTERM -> SIGKILL window.
+    uvicorn.run(
+        create_app(settings=settings, cfg=get_config()),
+        host=host,
+        port=port,
+        log_level="warning",
+        timeout_keep_alive=75,
+        timeout_graceful_shutdown=int(settings.shutdown_grace_s),
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

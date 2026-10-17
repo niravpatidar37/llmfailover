@@ -34,7 +34,7 @@ async def feed(
     t: float,
     latency: float = 50,
     et: ErrorType | None = ErrorType.SERVER_ERROR,
-    probe: bool = False,
+    probe: str | None = None,
 ) -> None:
     et = None if ok else et
     await h.record("p", ok, latency, et, now=t)
@@ -107,10 +107,10 @@ async def test_half_open_recovers_and_closes(redis: fakeredis.FakeAsyncRedis) ->
     assert not (await b.admit("p", now=1005)).allowed  # open: no traffic
     adm = await b.admit("p", now=1014)  # cooldown 10 s elapsed -> half-open probe
     assert adm.allowed and adm.probe and adm.state == HALF_OPEN
-    await feed(h, b, True, 1014.5, probe=True)
+    await feed(h, b, True, 1014.5, probe=adm.token)
     assert await b.state("p", now=1015) == HALF_OPEN
-    await b.admit("p", now=1015)
-    await feed(h, b, True, 1015.5, probe=True)
+    adm2 = await b.admit("p", now=1015)
+    await feed(h, b, True, 1015.5, probe=adm2.token)
     assert await b.state("p", now=1016) == CLOSED
     # Old failures from before the recovery must not immediately re-trip the closed breaker.
     await feed(h, b, True, 1016)
@@ -121,8 +121,8 @@ async def test_half_open_probe_failure_reopens_with_longer_cooldown(redis: faker
     h, b = make(redis)
     for i in range(4):
         await feed(h, b, False, 1000 + i)
-    await b.admit("p", now=1014)
-    await feed(h, b, False, 1014.5, probe=True)
+    adm = await b.admit("p", now=1014)
+    await feed(h, b, False, 1014.5, probe=adm.token)
     assert await b.state("p", now=1015) == OPEN
     assert await b.state("p", now=1014.5 + 15) == OPEN  # cooldown doubled to 20 s
     assert await b.state("p", now=1014.5 + 21) == HALF_OPEN

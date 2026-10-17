@@ -1,6 +1,8 @@
 """Chaos proxy on 127.0.0.1:8113: sits between the gateway and providers and injects faults on demand.
 
 * Refuses to start unless CHAOS_ENABLED=1, and the gateway only routes through it when CHAOS_ENABLED=1.
+* Refuses to start when ENV=prod, whatever CHAOS_ENABLED says; the gateway itself also refuses to start
+  with ENV=prod and CHAOS_ENABLED=1, and never routes to the proxy in prod (``ProviderConfig.api_base``).
 * ``/{provider}/{path}`` forwards to a FIXED upstream per provider (no caller-controlled URLs, so no SSRF).
 * ``/admin/faults/{provider}`` (PUT/DELETE) and ``/admin/faults`` (GET) require ``X-Chaos-Token``.
 * A fault is ``{error_rate, latency_ms, status_code, duration_s}``: each forwarded request first sleeps
@@ -23,6 +25,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, generate_latest
 from pydantic import BaseModel, Field
+
+from .config import chaos_requested, runtime_env
 
 HOP_HEADERS = {
     "host",
@@ -64,7 +68,9 @@ def create_chaos_app(
     admin_token: str | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
-    if os.environ.get("CHAOS_ENABLED") != "1":
+    if runtime_env() == "prod":
+        raise ChaosDisabled("chaos proxy never runs when ENV=prod")
+    if not chaos_requested():
         raise ChaosDisabled("chaos proxy is disabled; set CHAOS_ENABLED=1 to start it")
     token = admin_token if admin_token is not None else os.environ.get("CHAOS_ADMIN_TOKEN", "")
     if len(token) < 16:

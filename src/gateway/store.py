@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import secrets
 import time
 from dataclasses import dataclass
@@ -24,9 +25,74 @@ def _s(v: Any) -> str:
     return v.decode() if isinstance(v, bytes) else str(v)
 
 
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+# Sliding-log window. KEYS[1] = zset. ARGV: now, window_s, limit, member. Returns {allowed, oldest_score}.
+_WINDOW = """
+local key, now, window, limit = KEYS[1], tonumber(ARGV[1]), tonumber(ARGV[2]), tonumber(ARGV[3])
+redis.call('ZREMRANGEBYSCORE', key, '-inf', now - window)
+if redis.call('ZCARD', key) >= limit then
+  local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+  return {0, oldest[2] or ARGV[1]}
+end
+redis.call('ZADD', key, now, ARGV[4])
+redis.call('EXPIRE', key, math.ceil(window) + 60)
+return {1, ARGV[1]}
+"""
+
+# Bounded set. KEYS[1] = set. ARGV: member, max. Returns 1 if the member is (now) in the set, else 0.
+_BOUNDED_ADD = """
+if redis.call('SISMEMBER', KEYS[1], ARGV[1]) == 1 then return 1 end
+if redis.call('SCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 0 end
+redis.call('SADD', KEYS[1], ARGV[1])
+return 1
+"""
+
+
+class SlidingWindow:
+    """Atomic sliding-log limiter (one Lua call), so the limit holds across gateway instances."""
+
+    def __init__(self, redis: Redis) -> None:
+        self._script = redis.register_script(_WINDOW)
+
+    async def allow(
+        self, key: str, limit: int, window_s: float, now: float, nonce: str
+    ) -> tuple[bool, float]:
+        ok, oldest = await self._script(
+            keys=[key], args=[repr(now), repr(float(window_s)), int(limit), f"{now:.6f}:{nonce}"]
+        )
+        if int(ok):
+            return True, 0.0
+        return False, max(0.1, window_s - (now - float(_s(oldest))))
+
+
+KILL_SWITCH_KEY = "gw:killswitch"
+
+
+class KillSwitch:
+    """Operator kill switch: LLM_KILL_SWITCH=1 (deploy-time) OR the Redis key (instant, all instances)."""
+
+    def __init__(self, redis: Redis, env_flag: bool) -> None:
+        self.redis = redis
+        self.env_flag = env_flag
+
+    async def engaged(self) -> bool:
+        if self.env_flag:
+            return True
+        return _s(await self.redis.get(KILL_SWITCH_KEY) or b"0") == "1"
+
+    async def set(self, on: bool, actor: str = "admin") -> None:
+        if on:
+            await self.redis.set(KILL_SWITCH_KEY, "1")
+        else:
+            await self.redis.delete(KILL_SWITCH_KEY)
+
+
 class TenantStore:
     def __init__(self, redis: Redis) -> None:
         self.redis = redis
+        self._window = SlidingWindow(redis)
+        self._feature = redis.register_script(_BOUNDED_ADD)
 
     async def create(self, tenant: str, rpm: int) -> str:
         """Create or rotate a tenant key. Only its SHA-256 is stored; the plaintext is returned once."""
@@ -54,33 +120,40 @@ class TenantStore:
         return int(_s(v)) if v is not None else 60
 
     async def allow_request(self, tenant: str, now: float | None = None) -> tuple[bool, float]:
-        """Sliding-log limiter over 60 s. Returns (allowed, retry_after_s)."""
+        """Sliding-log limiter over 60 s, atomic across instances. Returns (allowed, retry_after_s)."""
         t = now if now is not None else time.time()
         limit = await self.rpm(tenant)
-        key = f"gw:rl:{tenant}"
-        async with self.redis.pipeline(transaction=True) as pipe:
-            pipe.zremrangebyscore(key, 0, t - 60)
-            pipe.zcard(key)
-            pipe.zrange(key, 0, 0, withscores=True)
-            _, count, oldest = await pipe.execute()
-        if int(count) >= limit:
-            retry = 60 - (t - float(oldest[0][1])) if oldest else 1.0
-            return False, max(0.1, retry)
-        async with self.redis.pipeline(transaction=True) as pipe:
-            pipe.zadd(key, {f"{t:.6f}:{secrets.token_hex(4)}": t})
-            pipe.expire(key, 120)
-            await pipe.execute()
-        return True, 0.0
+        return await self._window.allow(f"gw:rl:{tenant}", limit, 60.0, t, secrets.token_hex(8))
 
     async def feature_label(self, tenant: str, feature: str, max_features: int) -> str:
         """Bound Prometheus label cardinality: past ``max_features`` distinct features, report 'other'."""
-        key = f"gw:features:{tenant}"
-        if await self.redis.sismember(key, feature):
-            return feature
-        if int(await self.redis.scard(key)) >= max_features:
-            return "other"
-        await self.redis.sadd(key, feature)
-        return feature
+        added = await self._feature(keys=[f"gw:features:{tenant}"], args=[feature, max_features])
+        return feature if int(added) else "other"
+
+    async def sync_from_spec(self, spec: dict[str, Any]) -> int:
+        """Make Redis match the tenant spec from Secret Manager (hashes only; the source of truth).
+
+        ``spec`` = ``{"tenant": {"rpm": 600, "key_sha256": ["<64 hex>", ...]}}``. Several hashes per tenant
+        allow overlapping rotation; hashes that left the spec are revoked. Returns the number of live keys.
+        """
+        live = 0
+        for tenant, entry in spec.items():
+            hashes = [str(h).lower() for h in entry.get("key_sha256", [])]
+            if not all(_HEX64.match(h) for h in hashes):
+                raise ValueError(f"tenant {tenant!r}: key_sha256 entries must be 64 hex chars")
+            rpm = int(entry.get("rpm", 600))
+            old = {_s(h) for h in await self.redis.smembers(f"gw:tenant:{tenant}:keys")}
+            async with self.redis.pipeline(transaction=True) as pipe:
+                for h in old - set(hashes):
+                    pipe.delete("gw:apikey:" + h)
+                    pipe.srem(f"gw:tenant:{tenant}:keys", h)
+                for h in hashes:
+                    pipe.set("gw:apikey:" + h, tenant)
+                    pipe.sadd(f"gw:tenant:{tenant}:keys", h)
+                pipe.hset(f"gw:tenant:{tenant}", mapping={"rpm": rpm, "synced_at": time.time()})
+                await pipe.execute()
+            live += len(hashes)
+        return live
 
 
 @dataclass

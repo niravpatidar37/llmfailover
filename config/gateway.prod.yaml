@@ -1,0 +1,89 @@
+# PROD gateway configuration: external providers only.
+#
+# Ollama (GPU host runtime and the CPU container) is local/dev only and is NOT part of this file: a Cloud Run
+# service cannot reach a laptop GPU, and running a model server inside the gateway's failure domain would
+# not add independence anyway. The gateway refuses to start in ENV=prod if an enabled provider points at a
+# loopback/private address (config.check_runtime_safety).
+#
+# Honest consequence: prod has FEWER independent providers than the local benchmark setup.
+#   * groq      - enabled when GROQ_API_KEY is present (Secret Manager).        -> 1 provider today
+#   * anthropic - enabled only when ANTHROPIC_API_KEY is present. No key exists yet. The model id is a
+#                 PLACEHOLDER: verify with GET https://api.anthropic.com/v1/models before enabling.
+#   * hf        - enabled only when HF_ENABLED=1; the account returned HTTP 402 (no credits) on 2026-10-16,
+#                 so it stays off until it is funded.
+# With only Groq enabled there is no failover target: interactive traffic fails fast (503) when Groq's
+# breaker opens, and deferrable traffic is queued until it recovers. The gateway logs a startup warning.
+#
+# PRICES ARE ESTIMATES - verify against provider pricing pages (same sources as config/gateway.yaml):
+#   https://groq.com/pricing , https://huggingface.co/inference/pricing , https://www.anthropic.com/pricing
+providers:
+  groq:
+    litellm_model: "groq/openai/gpt-oss-20b"
+    api_key_env: GROQ_API_KEY
+    api_base_default: "https://api.groq.com/openai/v1"
+    paid: true
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    timeout_s: 15
+    latency_budget_ms: 4000
+    min_max_tokens: 48
+    extra: { reasoning_effort: "low" }
+  anthropic:
+    litellm_model: "anthropic/VERIFY-MODEL-ID-VIA-GET-v1-models"
+    api_key_env: ANTHROPIC_API_KEY
+    enabled_env: ANTHROPIC_API_KEY
+    paid: true
+    price_in_per_m: 1.00
+    price_out_per_m: 5.00
+    timeout_s: 20
+    latency_budget_ms: 8000
+  hf:
+    litellm_model: "openai/meta-llama/Llama-3.1-8B-Instruct"
+    api_key_env: HF_TOKEN
+    api_base_default: "https://router.huggingface.co/v1"
+    enabled_env: HF_ENABLED
+    paid: true
+    price_in_per_m: 0.06
+    price_out_per_m: 0.06
+    timeout_s: 15
+    latency_budget_ms: 5000
+
+classes:
+  classify:
+    mode: interactive
+    preference: [groq, anthropic, hf]
+    max_tokens_cap: 16
+    # Measured locally: a 2.5 s delay was too conservative (README, design decision 3); start nearer p95.
+    hedge_after_ms: 1500
+  generate:
+    mode: interactive
+    preference: [groq, anthropic, hf]
+    max_tokens_cap: 128
+  batch:
+    mode: deferrable
+    preference: [hf, groq, anthropic]
+    max_tokens_cap: 128
+
+breaker:
+  window_s: 30
+  min_samples: 4
+  error_rate_threshold: 0.5
+  open_cooldown_s: 10
+  max_cooldown_s: 30
+  half_open_probe_ratio: 0.2
+  half_open_successes: 3
+  probe_lease_s: 60
+
+hedging:
+  max_hedges_per_minute: 30
+
+queue:
+  base_delay_s: 1.0
+  max_delay_s: 30.0
+  max_attempts: 12
+  poll_interval_s: 0.5
+
+limits:
+  max_prompt_chars: 8000
+  max_messages: 32
+  max_features_per_tenant: 50

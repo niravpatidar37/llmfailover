@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import secrets
 import time
-from collections import deque
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -15,7 +16,10 @@ from .errors import ErrorType, ProviderError
 from .health import HealthTracker
 from .metrics import Metrics
 from .providers import Completion, ProviderCaller
-from .spend import BudgetExceeded, SpendLedger, estimate_tokens
+from .spend import BudgetExceeded, FileSpendGuard, SpendGuard, SpendLedger, estimate_tokens
+from .store import SlidingWindow
+
+HEDGE_KEY = "gw:hedges"
 
 
 @dataclass
@@ -53,6 +57,10 @@ class AllProvidersFailed(Exception):
         self.attempts = attempts
 
 
+class KillSwitchEngaged(Exception):
+    """All provider calls are disabled by the operator kill switch (env flag or Redis key)."""
+
+
 @dataclass
 class _Running:
     provider: str
@@ -60,6 +68,8 @@ class _Running:
     estimate_usd: float
     started: float
     hedge: bool = False
+    probe_token: str | None = None
+    reservation: str | None = None
 
 
 @dataclass
@@ -78,22 +88,26 @@ class Router:
         breakers: CircuitBreakers,
         health: HealthTracker,
         metrics: Metrics,
-        ledger: SpendLedger | None,
+        ledger: SpendLedger | SpendGuard | None,
         caller: ProviderCaller,
+        kill_switch: Callable[[], Awaitable[bool]] | None = None,
     ) -> None:
         self.cfg = cfg
         self.breakers = breakers
         self.health = health
         self.metrics = metrics
-        self.ledger = ledger
+        self.ledger: SpendGuard | None = FileSpendGuard(ledger) if isinstance(ledger, SpendLedger) else ledger
         self.caller = caller
-        self._hedge_times: deque[float] = deque()
+        self.kill_switch = kill_switch
+        # Hedge budget lives in Redis, so it caps hedging across all gateway instances, not per process.
+        self._hedges = SlidingWindow(breakers.redis)
 
     # ---- helpers -------------------------------------------------------------------------------
-    def _hedge_budget_ok(self, now: float) -> bool:
-        while self._hedge_times and now - self._hedge_times[0] > 60:
-            self._hedge_times.popleft()
-        return len(self._hedge_times) < self.cfg.hedging.max_hedges_per_minute
+    async def _hedge_budget_ok(self, now: float) -> bool:
+        allowed, _ = await self._hedges.allow(
+            HEDGE_KEY, self.cfg.hedging.max_hedges_per_minute, 60.0, now, secrets.token_hex(8)
+        )
+        return allowed
 
     def _estimate(self, provider: str, messages: list[dict[str, str]], max_tokens: int) -> float:
         p = self.cfg.providers[provider]
@@ -113,16 +127,18 @@ class Router:
                 ctx.attempts.append(Attempt(p, f"skipped_{adm.state}"))
                 continue
             est = self._estimate(p, messages, max_tokens)
+            reservation: str | None = None
             if est > 0 and self.ledger is not None:
                 try:
-                    self.ledger.reserve(est)
+                    reservation = await self.ledger.reserve(est)
                 except BudgetExceeded:
-                    if adm.probe:
-                        self.breakers.release_probe(p)
+                    await self.breakers.release_probe(p, adm.token)
                     ctx.attempts.append(Attempt(p, "skipped_budget"))
                     self.metrics.provider_errors.labels(p, ErrorType.BUDGET.value).inc()
                     continue
-            return _Running(p, adm.probe, est, time.perf_counter())
+            return _Running(
+                p, adm.probe, est, time.perf_counter(), probe_token=adm.token, reservation=reservation
+            )
         return None
 
     async def _call(
@@ -145,10 +161,10 @@ class Router:
         )
         self.metrics.provider_attempts.labels(run.provider, "error").inc()
         self.metrics.provider_errors.labels(run.provider, err.error_type.value).inc()
-        if self.ledger is not None and run.estimate_usd:
-            self.ledger.release(run.estimate_usd)
+        if self.ledger is not None and run.reservation:
+            await self.ledger.release(run.reservation)
         await self.health.record(run.provider, False, latency, err.error_type)
-        await self.breakers.on_result(run.provider, False, latency, err.error_type, run.probe)
+        await self.breakers.on_result(run.provider, False, latency, err.error_type, run.probe_token)
 
     async def _record_success(self, run: _Running, comp: Completion, ctx: _Ctx) -> float:
         latency = comp.latency_ms
@@ -156,11 +172,12 @@ class Router:
         self.metrics.provider_attempts.labels(run.provider, "ok").inc()
         self.metrics.provider_latency.labels(run.provider).observe(latency / 1000)
         cost = self.cfg.providers[run.provider].cost_usd(comp.input_tokens, comp.output_tokens)
-        if self.ledger is not None and run.estimate_usd:
-            self.ledger.release(run.estimate_usd)
-            self.ledger.record(run.provider, comp.model, comp.input_tokens, comp.output_tokens, cost)
+        if self.ledger is not None and run.reservation:
+            await self.ledger.settle(
+                run.reservation, run.provider, comp.model, comp.input_tokens, comp.output_tokens, cost
+            )
         await self.health.record(run.provider, True, latency)
-        await self.breakers.on_result(run.provider, True, latency, None, run.probe)
+        await self.breakers.on_result(run.provider, True, latency, None, run.probe_token)
         return cost
 
     async def _record_cancel(self, run: _Running, ctx: _Ctx) -> float:
@@ -168,11 +185,10 @@ class Router:
         latency = (time.perf_counter() - run.started) * 1000
         ctx.attempts.append(Attempt(run.provider, "cancelled", round(latency, 1), run.probe, run.hedge))
         self.metrics.provider_attempts.labels(run.provider, "cancelled").inc()
-        if run.probe:
-            self.breakers.release_probe(run.provider)
-        if self.ledger is not None and run.estimate_usd:
-            self.ledger.release(run.estimate_usd)
-            self.ledger.record(
+        await self.breakers.release_probe(run.provider, run.probe_token)
+        if self.ledger is not None and run.reservation:
+            await self.ledger.settle(
+                run.reservation,
                 run.provider,
                 self.cfg.providers[run.provider].litellm_model,
                 0,
@@ -191,6 +207,8 @@ class Router:
     async def route(
         self, cls: RequestClass, messages: list[dict[str, str]], max_tokens: int, temperature: float | None
     ) -> RouteResult:
+        if self.kill_switch is not None and await self.kill_switch():
+            raise KillSwitchEngaged("LLM calls are disabled by the kill switch")
         candidates = [p for p in cls.preference if self.cfg.providers[p].enabled()]
         ctx = _Ctx(cls=cls, candidates=candidates)
         running: dict[asyncio.Task[Completion], _Running] = {}
@@ -223,13 +241,12 @@ class Router:
                 )
                 if not done:
                     hedge_used = True
-                    if not self._hedge_budget_ok(time.time()):
+                    if not await self._hedge_budget_ok(time.time()):
                         self.metrics.hedges.labels("budget_exhausted").inc()
                         continue
                     nxt = await self._next_admitted(ctx, messages, max_tokens)
                     if nxt is not None:
                         nxt.hedge = True
-                        self._hedge_times.append(time.time())
                         self.metrics.hedges.labels("fired").inc()
                         start(nxt)
                     continue

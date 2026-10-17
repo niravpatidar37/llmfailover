@@ -1,0 +1,244 @@
+name: deploy
+
+# Build once -> push to Artifact Registry -> deploy the image DIGEST to staging (migrate job, no-traffic
+# canary revision, smoke /healthz + /readyz, promote) -> prod behind the `production` environment
+# (manual approval): migrate, canary revision, smoke, 10% traffic, smoke, 100%; automatic rollback to the
+# previous revision if any smoke test fails.
+#
+# Every job is skipped until the repo variable GCP_PROJECT_ID is set (one-time bootstrap in docs/RUNBOOK.md),
+# so this workflow passes (all jobs skipped) while no cloud project is connected.
+# Auth is keyless (Workload Identity Federation); `id-token: write` is granted only to deploy jobs.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false # never cancel a rollout half-way; queue the next one instead
+
+env:
+  NAME: llm-gateway
+
+jobs:
+  build:
+    if: ${{ vars.GCP_PROJECT_ID != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # WIF: exchange the GitHub OIDC token for short-lived GCP credentials
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: build and push (tag = commit sha; tags are immutable in the repo)
+        id: push
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT_ID }}
+          REGION: ${{ vars.GCP_REGION }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          repo="${REGION}-docker.pkg.dev/${PROJECT}/${NAME}-staging/gateway"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "${repo}:${SHA}" .
+          docker push "${repo}:${SHA}"
+          digest="$(gcloud artifacts docker images describe "${repo}:${SHA}" --format='value(image_summary.digest)')"
+          case "$digest" in sha256:*) ;; *) echo "no digest resolved"; exit 1 ;; esac
+          echo "image=${repo}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "built ${repo}@${digest}"
+
+  deploy-staging:
+    needs: build
+    if: ${{ vars.GCP_PROJECT_ID != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write # WIF + identity token for the IAM-protected staging smoke test
+    env:
+      IMAGE: ${{ needs.build.outputs.image }}
+      REGION: ${{ vars.GCP_REGION }}
+      SVC: llm-gateway-staging-api
+      WP: llm-gateway-staging-worker
+      JOB: llm-gateway-staging-migrate
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: id_token
+          id_token_audience: llm-gateway-staging-smoke
+          id_token_include_email: true
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: migrate Redis keyspace (Cloud Run job, before any new code serves)
+        run: |
+          set -euo pipefail
+          gcloud run jobs update "$JOB" --image "$IMAGE" --region "$REGION" --quiet
+          gcloud run jobs execute "$JOB" --region "$REGION" --wait
+      - name: deploy no-traffic canary revision
+        id: canary
+        run: |
+          set -euo pipefail
+          prev="$(gcloud run services describe "$SVC" --region "$REGION" --format=json \
+            | jq -r '[.status.traffic[] | select(.percent != null)] | max_by(.percent) | .revisionName')"
+          echo "prev=${prev}" >> "$GITHUB_OUTPUT"
+          gcloud run deploy "$SVC" --region "$REGION" --container gateway --image "$IMAGE" \
+            --no-traffic --tag canary --quiet
+          url="$(gcloud run services describe "$SVC" --region "$REGION" --format='value(status.url)')"
+          echo "canary_url=${url/https:\/\//https://canary---}" >> "$GITHUB_OUTPUT"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+      - name: smoke canary (/healthz + /readyz)
+        env:
+          SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          URL: ${{ steps.canary.outputs.canary_url }}
+        run: bash scripts/smoke_deploy.sh "$URL"
+      - name: promote to 100%
+        run: gcloud run services update-traffic "$SVC" --region "$REGION" --to-latest --quiet
+      - name: smoke main URL
+        env:
+          SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          URL: ${{ steps.canary.outputs.url }}
+        run: bash scripts/smoke_deploy.sh "$URL"
+      - name: update worker pool
+        run: gcloud run worker-pools deploy "$WP" --region "$REGION" --image "$IMAGE" --quiet
+      - name: rollback to the previous revision
+        if: ${{ failure() && steps.canary.outputs.prev != '' }}
+        env:
+          PREV: ${{ steps.canary.outputs.prev }}
+        run: gcloud run services update-traffic "$SVC" --region "$REGION" --to-revisions "${PREV}=100" --quiet
+
+  deploy-prod:
+    needs: [build, deploy-staging]
+    if: ${{ vars.GCP_PROJECT_ID != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production # required reviewers = the manual approval gate
+    permissions:
+      contents: read
+      id-token: write # WIF + identity token for smoke tests
+    env:
+      STAGING_IMAGE: ${{ needs.build.outputs.image }}
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      SVC: llm-gateway-prod-api
+      WP: llm-gateway-prod-worker
+      JOB: llm-gateway-prod-migrate
+      CANARY_PERCENT: "10"
+      CANARY_SOAK_S: "300"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          token_format: id_token
+          id_token_audience: llm-gateway-prod-smoke
+          id_token_include_email: true
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: promote the exact staging image (same digest) into the prod repository
+        id: img
+        run: |
+          set -euo pipefail
+          digest="${STAGING_IMAGE##*@}"
+          dst="${REGION}-docker.pkg.dev/${PROJECT}/llm-gateway-prod/gateway"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker buildx imagetools create --tag "${dst}:${digest#sha256:}" "$STAGING_IMAGE"
+          got="$(gcloud artifacts docker images describe "${dst}:${digest#sha256:}" --format='value(image_summary.digest)')"
+          test "$got" = "$digest"  # prod runs the bytes that passed staging
+          echo "image=${dst}@${digest}" >> "$GITHUB_OUTPUT"
+      - name: migrate Redis keyspace
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+        run: |
+          set -euo pipefail
+          gcloud run jobs update "$JOB" --image "$IMAGE" --region "$REGION" --quiet
+          gcloud run jobs execute "$JOB" --region "$REGION" --wait
+      - name: deploy no-traffic canary revision
+        id: canary
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+        run: |
+          set -euo pipefail
+          prev="$(gcloud run services describe "$SVC" --region "$REGION" --format=json \
+            | jq -r '[.status.traffic[] | select(.percent != null)] | max_by(.percent) | .revisionName')"
+          echo "prev=${prev}" >> "$GITHUB_OUTPUT"
+          prev_worker="$(gcloud run worker-pools describe "$WP" --region "$REGION" --format=json \
+            | jq -r '.template.containers[0].image')"
+          echo "prev_worker=${prev_worker}" >> "$GITHUB_OUTPUT"
+          gcloud run deploy "$SVC" --region "$REGION" --container gateway --image "$IMAGE" \
+            --no-traffic --tag canary --quiet
+          new="$(gcloud run services describe "$SVC" --region "$REGION" --format=json \
+            | jq -r '.status.traffic[] | select(.tag == "canary") | .revisionName')"
+          echo "new=${new}" >> "$GITHUB_OUTPUT"
+          url="$(gcloud run services describe "$SVC" --region "$REGION" --format='value(status.url)')"
+          echo "canary_url=${url/https:\/\//https://canary---}" >> "$GITHUB_OUTPUT"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+      - name: smoke canary revision (0% traffic)
+        env:
+          SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          URL: ${{ steps.canary.outputs.canary_url }}
+        run: bash scripts/smoke_deploy.sh "$URL"
+      - name: shift canary traffic
+        env:
+          NEW: ${{ steps.canary.outputs.new }}
+          PREV: ${{ steps.canary.outputs.prev }}
+        run: |
+          set -euo pipefail
+          rest=$((100 - CANARY_PERCENT))
+          gcloud run services update-traffic "$SVC" --region "$REGION" \
+            --to-revisions "${NEW}=${CANARY_PERCENT},${PREV}=${rest}" --quiet
+      - name: soak, then smoke under canary traffic
+        env:
+          SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          URL: ${{ steps.canary.outputs.url }}
+          CANARY_URL: ${{ steps.canary.outputs.canary_url }}
+        run: |
+          set -euo pipefail
+          sleep "$CANARY_SOAK_S"
+          bash scripts/smoke_deploy.sh "$CANARY_URL"
+          bash scripts/smoke_deploy.sh "$URL"
+      - name: promote to 100%
+        env:
+          NEW: ${{ steps.canary.outputs.new }}
+        run: gcloud run services update-traffic "$SVC" --region "$REGION" --to-revisions "${NEW}=100" --quiet
+      - name: smoke at 100%
+        env:
+          SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
+          URL: ${{ steps.canary.outputs.url }}
+        run: bash scripts/smoke_deploy.sh "$URL"
+      - name: update worker pool
+        env:
+          IMAGE: ${{ steps.img.outputs.image }}
+        run: gcloud run worker-pools deploy "$WP" --region "$REGION" --image "$IMAGE" --quiet
+      - name: automatic rollback (service traffic + worker image)
+        if: ${{ failure() && steps.canary.outputs.prev != '' }}
+        env:
+          PREV: ${{ steps.canary.outputs.prev }}
+          PREV_WORKER: ${{ steps.canary.outputs.prev_worker }}
+        run: |
+          set -uo pipefail
+          gcloud run services update-traffic "$SVC" --region "$REGION" --to-revisions "${PREV}=100" --quiet
+          if [ -n "$PREV_WORKER" ] && [ "$PREV_WORKER" != "null" ]; then
+            gcloud run worker-pools deploy "$WP" --region "$REGION" --image "$PREV_WORKER" --quiet
+          fi
+          echo "::error::rolled back ${SVC} to ${PREV}"

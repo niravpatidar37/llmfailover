@@ -6,6 +6,7 @@ filter on the gateway logger. Patterns are deliberately conservative toward over
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any
@@ -63,6 +64,19 @@ def redact_obj(obj: Any) -> Any:
     return obj
 
 
+def _redact_message(msg: str) -> str:
+    """JSON log lines: redact string values only, so numeric fields (``ts``) are not mangled into
+    "[REDACTED_PHONE]" and the line stays valid JSON for Cloud Logging. Anything else: redact the text."""
+    if msg.startswith("{"):
+        try:
+            obj = json.loads(msg)
+        except ValueError:
+            obj = None
+        if isinstance(obj, dict):
+            return json.dumps(redact_obj(obj))
+    return redact(msg)
+
+
 class RedactingFilter(logging.Filter):
     """Logging filter that redacts the fully formatted message before any handler sees it."""
 
@@ -71,6 +85,6 @@ class RedactingFilter(logging.Filter):
             msg = record.getMessage()
         except (TypeError, ValueError):
             msg = str(record.msg)
-        record.msg = redact(msg)
+        record.msg = _redact_message(msg)
         record.args = None
         return True

@@ -56,6 +56,19 @@ services:
     depends_on: [prometheus]
     restart: unless-stopped
 
+  migrate:
+    # Versioned Redis keyspace migrations (one-shot); the gateway's /readyz stays 503 until they ran.
+    profiles: ["app"]
+    build: .
+    image: self-healing-llm-gateway:local
+    command: ["python", "-m", "gateway.migrate"]
+    environment:
+      ENV: dev
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis: {condition: service_healthy}
+    restart: "no"
+
   gateway:
     profiles: ["app"]
     build: .
@@ -66,6 +79,9 @@ services:
       - path: ${PORTFOLIO_ENV_FILE:-F:/.secrets/portfolio.env}
         required: false
     environment:
+      ENV: dev
+      GATEWAY_CONFIG: /app/config/gateway.yaml
+      GATEWAY_PORT: "8103"
       GATEWAY_HOST: 0.0.0.0
       REDIS_URL: redis://redis:6379/0
       OLLAMA_URL: http://host.docker.internal:11434
@@ -76,6 +92,7 @@ services:
     ports: ["127.0.0.1:8103:8103"]
     depends_on:
       redis: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
 
   chaos:
     profiles: ["app"]
@@ -85,6 +102,7 @@ services:
       - path: .env
         required: true
     environment:
+      ENV: dev
       CHAOS_ENABLED: "1"
       OLLAMA_URL: http://host.docker.internal:11434
       OLLAMA_CPU_URL: http://ollama-cpu:11434

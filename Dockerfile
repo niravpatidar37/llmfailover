@@ -15,11 +15,13 @@ RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app 
 WORKDIR /app
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY --chown=app:app config ./config
+# Fail-safe defaults: the image is PROD unless told otherwise (prod refuses chaos, local providers, file
+# spend ledger and plaintext Redis). docker-compose sets ENV=dev and the dev config explicitly.
 ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
-    GATEWAY_CONFIG=/app/config/gateway.yaml LITELLM_LOCAL_MODEL_COST_MAP=True \
-    GATEWAY_HOST=0.0.0.0 GATEWAY_PORT=8103
+    ENV=prod GATEWAY_CONFIG=/app/config/gateway.prod.yaml LITELLM_LOCAL_MODEL_COST_MAP=True \
+    GATEWAY_HOST=0.0.0.0
 USER app
 EXPOSE 8103
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
-  CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8103/healthz', timeout=2).status == 200 else 1)"]
+  CMD ["python", "-c", "import os,urllib.request,sys; p=os.environ.get('GATEWAY_PORT') or os.environ.get('PORT') or '8103'; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/healthz', timeout=2).status == 200 else 1)"]
 CMD ["python", "-m", "gateway.app"]
