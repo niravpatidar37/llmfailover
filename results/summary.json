@@ -1,0 +1,890 @@
+{
+ "outage": {
+  "scenario": "outage",
+  "fault": {
+   "providers": "ollama",
+   "error_rate": 1.0,
+   "latency_ms": 0,
+   "duration_s": 120.03
+  },
+  "rate_rps": 1.0,
+  "headline": {
+   "outage_client_availability_pct": 100.0,
+   "outage_interactive_availability_pct": 100.0,
+   "overall_availability_pct": 99.754,
+   "requests_total": 407,
+   "failover_events_total": 137,
+   "breaker_tripped_s_after_outage_start": 17.17,
+   "breaker_trip_reason": "error_rate",
+   "breaker_closed_s_after_outage_end": 43.36,
+   "p95_ms_before": 678.8,
+   "p95_ms_during": 2330.4,
+   "p95_ms_after": 2746.9,
+   "duplicate_submissions": 50,
+   "duplicate_replays_identical": 50,
+   "duplicate_side_effects": 0,
+   "request_ids_with_commit_count_gt_1": 0,
+   "spend_usd_this_run_from_ledger": 0.001382,
+   "breaker_trips_before_fault": []
+  },
+  "windows": {
+   "baseline": {
+    "requests": 110,
+    "availability_pct": 99.09,
+    "interactive_availability_pct": 98.88,
+    "interactive_p50_ms": 330.1,
+    "interactive_p95_ms": 678.8,
+    "failed_interactive_p95_ms": 2.1,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "outage": {
+    "requests": 122,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 250.1,
+    "interactive_p95_ms": 2330.4,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "recovery_breaker_still_open": {
+    "requests": 37,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 217.3,
+    "interactive_p95_ms": 1817.0,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "recovery_after_breaker_closed": {
+    "requests": 100,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 498.7,
+    "interactive_p95_ms": 2898.7,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   }
+  },
+  "breaker_timeline_s_from_fault_start": [
+   {
+    "provider": "ollama",
+    "t": 17.17,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama",
+    "t": 27.53,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 31.93,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 52.1,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 52.12,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 82.5,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 84.4,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 114.56,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 118.05,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 148.67,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 163.39,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   }
+  ],
+  "phases": {
+   "warmup": {
+    "served_by": {
+     "ollama": 34,
+     "groq": 3
+    },
+    "failures": {},
+    "failover_events": 0,
+    "hedged_attempts": 1
+   },
+   "baseline": {
+    "served_by": {
+     "groq": 15,
+     "ollama": 94
+    },
+    "failures": {
+     "ReadError": 1
+    },
+    "failover_events": 0,
+    "hedged_attempts": 0
+   },
+   "outage": {
+    "served_by": {
+     "ollama_cpu": 111,
+     "groq": 11
+    },
+    "failures": {},
+    "failover_events": 111,
+    "hedged_attempts": 1
+   },
+   "recovery": {
+    "served_by": {
+     "ollama_cpu": 30,
+     "groq": 13,
+     "ollama": 95
+    },
+    "failures": {},
+    "failover_events": 26,
+    "hedged_attempts": 8
+   }
+  }
+ },
+ "brownout": {
+  "scenario": "brownout",
+  "fault": {
+   "providers": "ollama",
+   "error_rate": 0.0,
+   "latency_ms": 7000,
+   "duration_s": 119.98
+  },
+  "rate_rps": 1.0,
+  "headline": {
+   "outage_client_availability_pct": 100.0,
+   "outage_interactive_availability_pct": 100.0,
+   "overall_availability_pct": 100.0,
+   "requests_total": 332,
+   "failover_events_total": 89,
+   "breaker_tripped_s_after_outage_start": 14.21,
+   "breaker_trip_reason": "p95_over_budget",
+   "breaker_closed_s_after_outage_end": 7.25,
+   "p95_ms_before": 2348.6,
+   "p95_ms_during": 2658.4,
+   "p95_ms_after": 1218.4,
+   "duplicate_submissions": 37,
+   "duplicate_replays_identical": 37,
+   "duplicate_side_effects": 0,
+   "request_ids_with_commit_count_gt_1": 0,
+   "spend_usd_this_run_from_ledger": 0.000777,
+   "breaker_trips_before_fault": []
+  },
+  "windows": {
+   "baseline": {
+    "requests": 60,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 300.9,
+    "interactive_p95_ms": 2348.6,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "outage": {
+    "requests": 114,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 152.0,
+    "interactive_p95_ms": 2658.4,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "recovery_breaker_still_open": {
+    "requests": 9,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 187.4,
+    "interactive_p95_ms": 571.9,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "recovery_after_breaker_closed": {
+    "requests": 133,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 319.9,
+    "interactive_p95_ms": 1240.8,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   }
+  },
+  "breaker_timeline_s_from_fault_start": [
+   {
+    "provider": "ollama",
+    "t": 14.21,
+    "transition": "closed->open",
+    "reason": "p95_over_budget"
+   },
+   {
+    "provider": "ollama",
+    "t": 24.38,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 47.4,
+    "transition": "half_open->open",
+    "reason": "probe_too_slow"
+   },
+   {
+    "provider": "ollama",
+    "t": 67.59,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 84.84,
+    "transition": "half_open->open",
+    "reason": "probe_too_slow"
+   },
+   {
+    "provider": "ollama",
+    "t": 114.96,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 127.24,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   }
+  ],
+  "phases": {
+   "warmup": {
+    "served_by": {
+     "ollama_cpu": 1,
+     "ollama": 13,
+     "groq": 1
+    },
+    "failures": {},
+    "failover_events": 0,
+    "hedged_attempts": 1
+   },
+   "baseline": {
+    "served_by": {
+     "ollama": 57,
+     "groq": 3
+    },
+    "failures": {},
+    "failover_events": 0,
+    "hedged_attempts": 1
+   },
+   "outage": {
+    "served_by": {
+     "ollama_cpu": 100,
+     "ollama": 6,
+     "groq": 8
+    },
+    "failures": {},
+    "failover_events": 83,
+    "hedged_attempts": 17
+   },
+   "recovery": {
+    "served_by": {
+     "ollama": 124,
+     "ollama_cpu": 6,
+     "groq": 13
+    },
+    "failures": {},
+    "failover_events": 6,
+    "hedged_attempts": 2
+   }
+  }
+ },
+ "total_outage": {
+  "scenario": "total_outage",
+  "fault": {
+   "providers": "ollama,ollama_cpu,groq",
+   "error_rate": 1.0,
+   "latency_ms": 0,
+   "duration_s": 60.0
+  },
+  "rate_rps": 1.0,
+  "headline": {
+   "outage_client_availability_pct": 25.532,
+   "outage_interactive_availability_pct": 0.0,
+   "overall_availability_pct": 83.571,
+   "requests_total": 280,
+   "failover_events_total": 53,
+   "breaker_tripped_s_after_outage_start": 2.06,
+   "breaker_trip_reason": "error_rate",
+   "breaker_closed_s_after_outage_end": 18.27,
+   "p95_ms_before": 2628.3,
+   "p95_ms_during": null,
+   "p95_ms_after": 2276.4,
+   "duplicate_submissions": 38,
+   "duplicate_replays_identical": 33,
+   "duplicate_side_effects": 0,
+   "request_ids_with_commit_count_gt_1": 0,
+   "spend_usd_this_run_from_ledger": 0.001264,
+   "breaker_trips_before_fault": [
+    {
+     "provider": "ollama",
+     "reason": "p95_over_budget",
+     "t": -49.47
+    }
+   ]
+  },
+  "windows": {
+   "baseline": {
+    "requests": 56,
+    "availability_pct": 98.21,
+    "interactive_availability_pct": 97.78,
+    "interactive_p50_ms": 213.4,
+    "interactive_p95_ms": 2628.3,
+    "failed_interactive_p95_ms": 2105.8,
+    "deferred_202": 1,
+    "deferred_completed": 1,
+    "deferred_completion_s_max": 75.08
+   },
+   "outage": {
+    "requests": 46,
+    "availability_pct": 23.91,
+    "interactive_availability_pct": 0.0,
+    "interactive_p50_ms": null,
+    "interactive_p95_ms": null,
+    "failed_interactive_p95_ms": 59.2,
+    "deferred_202": 11,
+    "deferred_completed": 11,
+    "deferred_completion_s_max": 75.92
+   },
+   "recovery_breaker_still_open": {
+    "requests": 25,
+    "availability_pct": 60.0,
+    "interactive_availability_pct": 54.55,
+    "interactive_p50_ms": 462.6,
+    "interactive_p95_ms": 2350.5,
+    "failed_interactive_p95_ms": 11.6,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "recovery_after_breaker_closed": {
+    "requests": 135,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 289.2,
+    "interactive_p95_ms": 961.1,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   }
+  },
+  "breaker_timeline_s_from_fault_start": [
+   {
+    "provider": "ollama",
+    "t": -49.47,
+    "transition": "closed->open",
+    "reason": "p95_over_budget"
+   },
+   {
+    "provider": "ollama",
+    "t": -39.29,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": -5.73,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama",
+    "t": 2.06,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "groq",
+    "t": 3.28,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 5.87,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama",
+    "t": 12.49,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "groq",
+    "t": 13.66,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "groq",
+    "t": 13.98,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 15.59,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 16.51,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 16.53,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "groq",
+    "t": 34.15,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "groq",
+    "t": 35.19,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 35.88,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 36.88,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 39.27,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 40.75,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "groq",
+    "t": 65.39,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "groq",
+    "t": 68.32,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama",
+    "t": 69.68,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 71.17,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 78.26,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   }
+  ],
+  "phases": {
+   "warmup": {
+    "served_by": {
+     "ollama_cpu": 13,
+     "groq": 2,
+     "ollama": 2
+    },
+    "failures": {},
+    "failover_events": 2,
+    "hedged_attempts": 11
+   },
+   "baseline": {
+    "served_by": {
+     "ollama_cpu": 38,
+     "ollama": 9,
+     "groq": 7
+    },
+    "failures": {},
+    "failover_events": 34,
+    "hedged_attempts": 4
+   },
+   "outage": {
+    "served_by": {
+     "groq": 8,
+     "ollama": 4
+    },
+    "failures": {
+     "providers_degraded": 34,
+     "retry": 1
+    },
+    "failover_events": 8,
+    "hedged_attempts": 0
+   },
+   "recovery": {
+    "served_by": {
+     "groq": 22,
+     "ollama": 127,
+     "ollama_cpu": 2
+    },
+    "failures": {
+     "providers_degraded": 11
+    },
+    "failover_events": 9,
+    "hedged_attempts": 3
+   }
+  }
+ },
+ "local_host_outage": {
+  "scenario": "local_host_outage",
+  "fault": {
+   "providers": "ollama,ollama_cpu",
+   "error_rate": 1.0,
+   "latency_ms": 0,
+   "duration_s": 89.98
+  },
+  "rate_rps": 0.7,
+  "headline": {
+   "outage_client_availability_pct": 83.929,
+   "outage_interactive_availability_pct": 80.0,
+   "overall_availability_pct": 85.714,
+   "requests_total": 196,
+   "failover_events_total": 88,
+   "breaker_tripped_s_after_outage_start": 15.13,
+   "breaker_trip_reason": "error_rate",
+   "breaker_closed_s_after_outage_end": 38.12,
+   "p95_ms_before": 2832.1,
+   "p95_ms_during": 2357.0,
+   "p95_ms_after": 7627.4,
+   "duplicate_submissions": 16,
+   "duplicate_replays_identical": 16,
+   "duplicate_side_effects": 0,
+   "request_ids_with_commit_count_gt_1": 0,
+   "spend_usd_this_run_from_ledger": 0.00185,
+   "breaker_trips_before_fault": [
+    {
+     "provider": "ollama",
+     "reason": "p95_over_budget",
+     "t": -66.56
+    }
+   ]
+  },
+  "windows": {
+   "baseline": {
+    "requests": 37,
+    "availability_pct": 100.0,
+    "interactive_availability_pct": 100.0,
+    "interactive_p50_ms": 384.5,
+    "interactive_p95_ms": 2832.1,
+    "failed_interactive_p95_ms": null,
+    "deferred_202": 0,
+    "deferred_completed": 0,
+    "deferred_completion_s_max": null
+   },
+   "outage": {
+    "requests": 56,
+    "availability_pct": 83.93,
+    "interactive_availability_pct": 80.0,
+    "interactive_p50_ms": 324.2,
+    "interactive_p95_ms": 2357.0,
+    "failed_interactive_p95_ms": 2169.7,
+    "deferred_202": 1,
+    "deferred_completed": 1,
+    "deferred_completion_s_max": 3.05
+   },
+   "recovery_breaker_still_open": {
+    "requests": 27,
+    "availability_pct": 33.33,
+    "interactive_availability_pct": 21.74,
+    "interactive_p50_ms": 698.9,
+    "interactive_p95_ms": 1916.2,
+    "failed_interactive_p95_ms": 173.0,
+    "deferred_202": 3,
+    "deferred_completed": 3,
+    "deferred_completion_s_max": 58.73
+   },
+   "recovery_after_breaker_closed": {
+    "requests": 58,
+    "availability_pct": 98.28,
+    "interactive_availability_pct": 97.87,
+    "interactive_p50_ms": 293.3,
+    "interactive_p95_ms": 8937.0,
+    "failed_interactive_p95_ms": 8.6,
+    "deferred_202": 1,
+    "deferred_completed": 1,
+    "deferred_completion_s_max": 3.03
+   }
+  },
+  "breaker_timeline_s_from_fault_start": [
+   {
+    "provider": "ollama",
+    "t": -66.56,
+    "transition": "closed->open",
+    "reason": "p95_over_budget"
+   },
+   {
+    "provider": "ollama",
+    "t": -55.63,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": -30.14,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 1.89,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 12.09,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 12.11,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 15.13,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama",
+    "t": 25.49,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 32.59,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 33.81,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 43.13,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama",
+    "t": 53.89,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 73.61,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 74.62,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 87.33,
+    "transition": "half_open->open",
+    "reason": "probe_failed"
+   },
+   {
+    "provider": "groq",
+    "t": 97.49,
+    "transition": "closed->open",
+    "reason": "error_rate"
+   },
+   {
+    "provider": "ollama",
+    "t": 104.64,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "groq",
+    "t": 108.39,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 117.51,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 128.1,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama",
+    "t": 143.75,
+    "transition": "closed->open",
+    "reason": "p95_over_budget"
+   },
+   {
+    "provider": "groq",
+    "t": 150.31,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama_cpu",
+    "t": 153.15,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   },
+   {
+    "provider": "ollama",
+    "t": 153.91,
+    "transition": "open->half_open",
+    "reason": "cooldown_elapsed"
+   },
+   {
+    "provider": "ollama",
+    "t": 177.03,
+    "transition": "half_open->closed",
+    "reason": "probes_succeeded"
+   }
+  ],
+  "phases": {
+   "warmup": {
+    "served_by": {
+     "ollama_cpu": 9,
+     "ollama": 4,
+     "groq": 4
+    },
+    "failures": {},
+    "failover_events": 3,
+    "hedged_attempts": 6
+   },
+   "baseline": {
+    "served_by": {
+     "ollama_cpu": 17,
+     "ollama": 16,
+     "groq": 4
+    },
+    "failures": {},
+    "failover_events": 16,
+    "hedged_attempts": 4
+   },
+   "outage": {
+    "served_by": {
+     "groq": 47
+    },
+    "failures": {
+     "providers_degraded": 9
+    },
+    "failover_events": 45,
+    "hedged_attempts": 0
+   },
+   "recovery": {
+    "served_by": {
+     "groq": 9,
+     "ollama_cpu": 16,
+     "ollama": 42
+    },
+    "failures": {
+     "providers_degraded": 19
+    },
+    "failover_events": 24,
+    "hedged_attempts": 3
+   }
+  }
+ }
+}

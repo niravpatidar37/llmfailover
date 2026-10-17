@@ -1,0 +1,7788 @@
+{
+ "config": {
+  "provider": "ollama,ollama_cpu",
+  "rate": 0.7,
+  "warmup": 20.0,
+  "baseline": 60.0,
+  "outage": 90.0,
+  "recovery": 120.0,
+  "error_rate": 1.0,
+  "latency_ms": 0,
+  "dup_ratio": 0.1,
+  "concurrent_dup_ratio": 0.03,
+  "defer_deadline": 240,
+  "seed": 31,
+  "screenshot": [
+   "grafana_local_host_outage_during@140"
+  ],
+  "out": "results/local_host_outage_run.json"
+ },
+ "marks_unix": {
+  "start": 1792201540.0493984,
+  "outage_start": 1792201620.0637608,
+  "screenshot_grafana_local_host_outage_during": 1792201690.2760808,
+  "outage_end": 1792201710.0478585,
+  "traffic_end": 1792201832.0386078,
+  "end": 1792201832.3591402
+ },
+ "outage_window_s": 89.98,
+ "phases": {
+  "warmup": {
+   "requests": 17,
+   "succeeded": 17,
+   "availability_pct": 100.0,
+   "interactive_requests": 14,
+   "interactive_succeeded": 14,
+   "interactive_availability_pct": 100.0,
+   "deferred_202": 0,
+   "deferred_completed": 0,
+   "deferred_completion_s_p50": null,
+   "deferred_completion_s_max": 0,
+   "latency_ms_interactive_p50": 570.0,
+   "latency_ms_interactive_p95": 2709.6,
+   "latency_ms_interactive_p99": 2736.6,
+   "served_by": {
+    "ollama_cpu": 9,
+    "ollama": 4,
+    "groq": 4
+   },
+   "failures": {},
+   "failover_events": 3,
+   "served_off_first_preference": 9,
+   "hedged_attempts": 6
+  },
+  "baseline": {
+   "requests": 37,
+   "succeeded": 37,
+   "availability_pct": 100.0,
+   "interactive_requests": 32,
+   "interactive_succeeded": 32,
+   "interactive_availability_pct": 100.0,
+   "deferred_202": 0,
+   "deferred_completed": 0,
+   "deferred_completion_s_p50": null,
+   "deferred_completion_s_max": 0,
+   "latency_ms_interactive_p50": 384.5,
+   "latency_ms_interactive_p95": 2832.1,
+   "latency_ms_interactive_p99": 3987.6,
+   "served_by": {
+    "ollama_cpu": 17,
+    "ollama": 16,
+    "groq": 4
+   },
+   "failures": {},
+   "failover_events": 16,
+   "served_off_first_preference": 17,
+   "hedged_attempts": 4
+  },
+  "outage": {
+   "requests": 56,
+   "succeeded": 47,
+   "availability_pct": 83.929,
+   "interactive_requests": 45,
+   "interactive_succeeded": 36,
+   "interactive_availability_pct": 80.0,
+   "deferred_202": 1,
+   "deferred_completed": 1,
+   "deferred_completion_s_p50": 3.0,
+   "deferred_completion_s_max": 3.05,
+   "latency_ms_interactive_p50": 324.2,
+   "latency_ms_interactive_p95": 2357.0,
+   "latency_ms_interactive_p99": 2598.7,
+   "served_by": {
+    "groq": 47
+   },
+   "failures": {
+    "providers_degraded": 9
+   },
+   "failover_events": 45,
+   "served_off_first_preference": 41,
+   "hedged_attempts": 0
+  },
+  "recovery": {
+   "requests": 86,
+   "succeeded": 67,
+   "availability_pct": 77.907,
+   "interactive_requests": 71,
+   "interactive_succeeded": 52,
+   "interactive_availability_pct": 73.239,
+   "deferred_202": 4,
+   "deferred_completed": 4,
+   "deferred_completion_s_p50": 37.5,
+   "deferred_completion_s_max": 58.73,
+   "latency_ms_interactive_p50": 320.5,
+   "latency_ms_interactive_p95": 7627.4,
+   "latency_ms_interactive_p99": 9426.5,
+   "served_by": {
+    "groq": 9,
+    "ollama_cpu": 16,
+    "ollama": 42
+   },
+   "failures": {
+    "providers_degraded": 19
+   },
+   "failover_events": 24,
+   "served_off_first_preference": 26,
+   "hedged_attempts": 3
+  }
+ },
+ "headline": {
+  "outage_client_availability_pct": 83.929,
+  "outage_interactive_availability_pct": 80.0,
+  "overall_availability_pct": 85.714,
+  "requests_total": 196,
+  "failover_events_total": 88,
+  "breaker_tripped_s_after_outage_start": 15.13,
+  "breaker_trip_reason": "error_rate",
+  "breaker_closed_s_after_outage_end": 38.12,
+  "p95_ms_before": 2832.1,
+  "p95_ms_during": 2357.0,
+  "p95_ms_after": 7627.4,
+  "duplicate_submissions": 16,
+  "duplicate_replays_identical": 16,
+  "duplicate_side_effects": 0,
+  "request_ids_with_commit_count_gt_1": 0,
+  "spend_usd_this_run_from_ledger": 0.00185
+ },
+ "breaker_events": [
+  {
+   "ts": 1792201553.5064964,
+   "provider": "ollama",
+   "from": "closed",
+   "to": "open",
+   "reason": "p95_over_budget",
+   "p95_ms": 8850.8,
+   "budget_ms": 6000.0,
+   "t_rel_outage_start_s": -66.56
+  },
+  {
+   "ts": 1792201564.4331696,
+   "provider": "ollama",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": -55.63
+  },
+  {
+   "ts": 1792201589.9284213,
+   "provider": "ollama",
+   "from": "half_open",
+   "to": "closed",
+   "reason": "probes_succeeded",
+   "t_rel_outage_start_s": -30.14
+  },
+  {
+   "ts": 1792201621.9545372,
+   "provider": "ollama_cpu",
+   "from": "closed",
+   "to": "open",
+   "reason": "error_rate",
+   "error_rate": 0.75,
+   "samples": 4,
+   "errors": {
+    "server_error": 3
+   },
+   "t_rel_outage_start_s": 1.89
+  },
+  {
+   "ts": 1792201632.1558027,
+   "provider": "ollama_cpu",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 12.09
+  },
+  {
+   "ts": 1792201632.1754088,
+   "provider": "ollama_cpu",
+   "from": "half_open",
+   "to": "open",
+   "reason": "probe_failed",
+   "error_type": "server_error",
+   "t_rel_outage_start_s": 12.11
+  },
+  {
+   "ts": 1792201635.1937056,
+   "provider": "ollama",
+   "from": "closed",
+   "to": "open",
+   "reason": "error_rate",
+   "error_rate": 0.5,
+   "samples": 14,
+   "errors": {
+    "server_error": 7
+   },
+   "t_rel_outage_start_s": 15.13
+  },
+  {
+   "ts": 1792201645.5552502,
+   "provider": "ollama",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 25.49
+  },
+  {
+   "ts": 1792201652.6530766,
+   "provider": "ollama_cpu",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 32.59
+  },
+  {
+   "ts": 1792201653.8695047,
+   "provider": "ollama",
+   "from": "half_open",
+   "to": "open",
+   "reason": "probe_failed",
+   "error_type": "server_error",
+   "t_rel_outage_start_s": 33.81
+  },
+  {
+   "ts": 1792201663.1925688,
+   "provider": "ollama_cpu",
+   "from": "half_open",
+   "to": "open",
+   "reason": "probe_failed",
+   "error_type": "server_error",
+   "t_rel_outage_start_s": 43.13
+  },
+  {
+   "ts": 1792201673.9509678,
+   "provider": "ollama",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 53.89
+  },
+  {
+   "ts": 1792201693.673418,
+   "provider": "ollama_cpu",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 73.61
+  },
+  {
+   "ts": 1792201694.6860826,
+   "provider": "ollama",
+   "from": "half_open",
+   "to": "open",
+   "reason": "probe_failed",
+   "error_type": "server_error",
+   "t_rel_outage_start_s": 74.62
+  },
+  {
+   "ts": 1792201707.391382,
+   "provider": "ollama_cpu",
+   "from": "half_open",
+   "to": "open",
+   "reason": "probe_failed",
+   "error_type": "server_error",
+   "t_rel_outage_start_s": 87.33
+  },
+  {
+   "ts": 1792201717.5544307,
+   "provider": "groq",
+   "from": "closed",
+   "to": "open",
+   "reason": "error_rate",
+   "error_rate": 0.571,
+   "samples": 21,
+   "errors": {
+    "rate_limit": 12
+   },
+   "t_rel_outage_start_s": 97.49
+  },
+  {
+   "ts": 1792201724.7029445,
+   "provider": "ollama",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 104.64
+  },
+  {
+   "ts": 1792201728.451957,
+   "provider": "groq",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 108.39
+  },
+  {
+   "ts": 1792201737.5734127,
+   "provider": "ollama_cpu",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 117.51
+  },
+  {
+   "ts": 1792201748.1681867,
+   "provider": "ollama",
+   "from": "half_open",
+   "to": "closed",
+   "reason": "probes_succeeded",
+   "t_rel_outage_start_s": 128.1
+  },
+  {
+   "ts": 1792201763.8108542,
+   "provider": "ollama",
+   "from": "closed",
+   "to": "open",
+   "reason": "p95_over_budget",
+   "p95_ms": 10779.7,
+   "budget_ms": 6000.0,
+   "t_rel_outage_start_s": 143.75
+  },
+  {
+   "ts": 1792201770.3775797,
+   "provider": "groq",
+   "from": "half_open",
+   "to": "closed",
+   "reason": "probes_succeeded",
+   "t_rel_outage_start_s": 150.31
+  },
+  {
+   "ts": 1792201773.209303,
+   "provider": "ollama_cpu",
+   "from": "half_open",
+   "to": "closed",
+   "reason": "probes_succeeded",
+   "t_rel_outage_start_s": 153.15
+  },
+  {
+   "ts": 1792201773.9689806,
+   "provider": "ollama",
+   "from": "open",
+   "to": "half_open",
+   "reason": "cooldown_elapsed",
+   "t_rel_outage_start_s": 153.91
+  },
+  {
+   "ts": 1792201797.0938172,
+   "provider": "ollama",
+   "from": "half_open",
+   "to": "closed",
+   "reason": "probes_succeeded",
+   "t_rel_outage_start_s": 177.03
+  }
+ ],
+ "costs_cumulative": {
+  "usd_by_tenant_feature": {
+   "globex": {
+    "reply-suggest": 0.0002858,
+    "review-sentiment": 0.0002765,
+    "nightly-summaries": 0.0002427
+   },
+   "initech": {
+    "report-batch": 0.0001741,
+    "ticket-router": 0.0001591
+   },
+   "acme": {
+    "support-triage": 0.0004289,
+    "email-draft": 0.0002826
+   }
+  }
+ },
+ "requests": [
+  {
+   "rid": "lg-2b7e953ff2a144ae",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201540.0699246,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2687.6977999927476,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 143.4,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2657.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e3d4e5247e364731",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201540.7671502,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 8894.264500006102,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 8850.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-ed559ab282fe4446",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201541.8846433,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2709.6362999873236,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 201.2,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2697.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8a7159d454414e96",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201543.8286307,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 374.9948999611661,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 356.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9407f0b94d4347d9",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201544.8834374,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2736.602700082585,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 219.2,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2725.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-84e85db982624152",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201545.1797655,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2675.7331000408158,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 155.4,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2661.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a1c987649f894e06",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201545.5833733,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2687.8408999182284,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 153.4,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2673.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2c44a184f4bb4a25",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201546.738744,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 2680.951099959202,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 151.9,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2666.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9294df025a5f4bf1",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201547.064494,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 366.11329996958375,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 338.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-91d2cacb13f04774",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201549.9540944,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 792.2496000537649,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 776.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c3cd9aaacf3f4619",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201550.45347,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 844.6840000106022,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 827.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-bd671b93682542be",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201553.0325034,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 402.30940002948046,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 380.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8491d4a8bb6f4635",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201553.3130379,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 198.55520001146942,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 185.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2853eca58f704aa7",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201553.8065782,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 276.2715000426397,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 264.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-3bf770b9b1d74fa9",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201553.9613402,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 570.0141999404877,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 540.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8f703b98aa74413f",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201556.5562315,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 133.3632000023499,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 118.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-288bf9b5f2e34df5",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201556.6337426,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 140.2531999628991,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 124.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1bc54b2284904c59",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201562.4632676,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2252.5693000061437,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2238.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-faf9ccd34a0c40c5",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201562.6963546,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2180.57610001415,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2167.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4579a3da9b994c30",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201563.1598647,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2201.316799968481,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2188.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-30be2e6381a7432b",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201564.4321587,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2182.948200032115,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2169.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f378a631be5c4155",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201565.7679052,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 135.1111000403762,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 122.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e0a0e3c2f55a4d7c",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201566.3783946,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 109.30570005439222,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 95.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9dc8aec4b7da459e",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201573.49939,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2183.8912999955937,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2167.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2682497ec90a4e81",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201573.809063,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2191.8533999705687,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2175.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a2ab3597ff984add",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201574.9633403,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2257.059399969876,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2238.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d20d04fce28e464b",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201575.6825466,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 326.9655000185594,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 314.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-12a4f01a22d449aa",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201576.2246659,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 131.2606999417767,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 117.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-844008789fba4e16",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201576.706813,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 477.27729997131974,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 459.6,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-782e114bde834e50",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201576.9122221,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 322.3443999886513,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 306.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1171054f0b8943e8",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201579.956576,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 110.30040006153286,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 97.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e33c65cd609345aa",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201581.8676388,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 443.6150999972597,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 431.2,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a1ba99ca2dfd44e9",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201582.2761805,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 340.59589996468276,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 319.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7861cf1ecb724e9f",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201582.6165307,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 125.57349994312972,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 115.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-da4e1e6eb343404b",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201582.9676483,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 188.88659996446222,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 176.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-649323f3f5d7440a",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201587.9362495,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 145.50470001995564,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 117.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2ab131fa5309450c",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201589.4357052,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 497.87910003215075,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 485.3,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-98d8d0822b7c43ed",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201590.3694296,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 253.7439001025632,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 240.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-3b69e1d1455340de",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201590.8535993,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 340.5779000604525,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 327.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-50909d1a3cf8431a",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201591.22721,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 240.50810001790524,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 229.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2227baa9f542406a",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201593.9377744,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 406.777499942109,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 387.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-953e2386e53a423c",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201595.0408323,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 255.29360002838075,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 242.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f568081939c8429e",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201595.5870311,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 170.68450001534075,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 157.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7176cd22a5ce41c3",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201597.676377,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 181.15650000981987,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 169.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7513aef611754520",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201597.722973,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 205.72229998651892,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 191.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a219597956384708",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201603.5688334,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2812.791100004688,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 2794.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-6ce2deb195f044e8",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201603.7876399,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2832.0836999919266,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 2814.2,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "cancelled",
+     "latency_ms": 303.1,
+     "probe": false,
+     "hedge": true
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8e35b001db55420f",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201607.6665614,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 279.67370010446757,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 266.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e8c5d7ada6d0482a",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201609.9940684,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 736.6195999784395,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 721.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0190d82c837941e1",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201609.9940684,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 455.500700045377,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 440.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-dd806fd8531845eb",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201610.6029747,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 384.51649993658066,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 373.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1812d4434c394308",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201614.539605,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 2762.766500003636,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 219.8,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2746.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-43bd0281cc7949da",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201618.6557424,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 3987.6310999970883,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 35.2,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 3973.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1eab99092f3e482d",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201619.4223354,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 3337.536800070666,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 20.8,
+     "probe": false,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 3325.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f778fba6d5f44caa",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201621.3237417,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 261.48149999789894,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 235.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c7db4b23e431456b",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201621.7135477,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 487.87609999999404,
+   "provider": "groq",
+   "failovers": 2,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 22.8,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 21.9,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 409.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-ff940e311d30417b",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201622.9591844,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 263.7945000315085,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 251.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c542b5edb0d14bd5",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201627.5372777,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 2598.7016999861225,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 2084.3,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 489.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1e4929bec3464b3f",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201629.9989862,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 292.9401999572292,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 18.1,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 257.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c538a3ccc4964970",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201630.3553362,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 280.9040999272838,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 18.7,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 239.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c99b2b29a6ad4d20",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201632.1279092,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 234.33689994271845,
+   "provider": "groq",
+   "failovers": 2,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 18.4,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 17.2,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 177.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-57a67eef096f4952",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201632.236668,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 220.85060004610568,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 19.2,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 186.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-01fd75a327c4498c",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201635.1669974,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 447.52120005432516,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 18.3,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 403.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9ee592b7084f4a04",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201636.4783452,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 580.515000037849,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 561.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-cf5352f9587b4e63",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201637.0398533,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 213.08050001971424,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 199.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f22d0fc969d04126",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201639.7637053,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 457.20239996444434,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 435.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f891f30731eb407a",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201640.8885922,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 462.09019992966205,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 436.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-512f7396f2ca4d00",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201646.1670737,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 202.715800027363,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 187.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a684ed311aef499b",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201647.8333886,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 171.31080001126975,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 149.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-51b1b2bc9d304ec2",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201650.7481365,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 330.9928000671789,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 308.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d8ab503f5d664952",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201651.7754803,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 2304.653099970892,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 2085.1,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 199.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e08bfe01a361428d",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201655.0332863,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 339.55100004095584,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 318.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-880a871182184aa2",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201655.3130467,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 270.02379996702075,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 256.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-de9df46499fe4aa4",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201655.6556501,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 122.62320006266236,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 104.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8186b5310f534020",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201657.8540235,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 390.64219989813864,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 376.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1639fb468306451f",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201659.1651537,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 412.66000003088266,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 391.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0d119e725f4e4dfa",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201660.3636034,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 334.28310009185225,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 310.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-687ced682d434821",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201660.4414828,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 279.0968999033794,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 267.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-cd2b62f232174dfd",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201660.5815055,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 113.96929994225502,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 99.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-01c370b2b12e4d98",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201660.6285424,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 84.90079990588129,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 73.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4e88a8856bb2447a",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201661.1100945,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 2356.9612000137568,
+   "provider": "groq",
+   "failovers": 2,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 2073.3,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 257.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e010f3e287954a12",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201664.0280957,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 463.02260004449636,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 442.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-65803e4870c5422c",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201664.8379772,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 369.59880008362234,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 348.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-5006379753494f3a",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201666.0054693,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 431.90839991439134,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 410.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-526da3eb739544c6",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201667.486619,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 394.8336999164894,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 375.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2578b794356c4a38",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201667.8601553,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 214.94249999523163,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 200.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7fe99b6b9d1947e2",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201668.5133724,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 278.7118999985978,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 256.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d3a5ecbdecfa4411",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201671.6153798,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 216.11420006956905,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 195.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-441e3addf3a74334",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201672.8168087,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 275.2013000426814,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 255.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-18321028d6bb4d12",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201675.15057,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 297.5172000005841,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 282.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c9997c69dfad49c8",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201679.4096098,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 369.6125000715256,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 347.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d525baee18834c87",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201680.5511296,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 429.71160006709397,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 409.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-bc23692aff574d90",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201684.648615,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 394.6482000174001,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 368.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-3cb83d199f964e39",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201685.0378752,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 187.92879988905042,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 164.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4591ab8a14814af1",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201686.7058303,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 226.7200000351295,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 179.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-db301deaa36b424c",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201686.7528532,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 181.01830000523478,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 168.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8c34cbd4a1b04168",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201686.9063177,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 335.2274999488145,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 320.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-64d5a48f61b4415c",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201688.0752988,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 276.90830000210553,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 251.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c68a4e6828a74bc8",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201690.3691683,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 361.7900999961421,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 339.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-34157c4817dd47ea",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201691.042769,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 79.38619994092733,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 60.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-90a87d3e1e3a4295",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201692.6221092,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 2169.747299980372,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "server_error",
+     "latency_ms": 2054.5,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 98.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-26a339ebf8a04573",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201692.9801118,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 324.1869999328628,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 309.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7d40d145f16e4c32",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201693.6668477,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 104.24629994668067,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 84.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9acd90f2c509485c",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201693.8543108,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 191.0896000918001,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 177.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-48883a0bd5f046e9",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201696.452839,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 196.82479999028146,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 181.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-aef86a9ca1384285",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201696.9314682,
+   "phase": "outage",
+   "status": 202,
+   "latency_ms": 103.17900008521974,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [],
+   "deferred": true,
+   "deferred_done_s": 3.05,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-495680e231a7470f",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201700.5633695,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 95.95420002005994,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 76.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a7db2fc3d6f64b2d",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201703.6278565,
+   "phase": "outage",
+   "status": 503,
+   "latency_ms": 90.25560005102307,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 65.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-24b84055c2e64461",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201705.2792888,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 302.7950000250712,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 290.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-35d1a8689f424315",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201705.3253515,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 2388.370000058785,
+   "provider": "groq",
+   "failovers": 2,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "server_error",
+     "latency_ms": 2057.6,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 306.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-eae3e12476c5487f",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201713.213492,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 239.2253999132663,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 216.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-ce7d34afcbbc434c",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201713.4322798,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 171.22020001988858,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 157.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f7a7bf5e12b04cc9",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201715.105555,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 97.41109993774444,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 85.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d1efd217a7624314",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201716.0561283,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 129.27829998079687,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 115.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a62bb1204b2040c9",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201717.3854759,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 174.29710004944354,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 153.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-82ebb1d35cbc4fd2",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201717.3860798,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 172.9920000070706,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "rate_limit",
+     "latency_ms": 151.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-544a38c3c95a427b",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201718.3619359,
+   "phase": "recovery",
+   "status": 202,
+   "latency_ms": 10.591700091026723,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [],
+   "deferred": true,
+   "deferred_done_s": 58.73,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c11fc4c576f345d7",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201720.98614,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.110900107771158,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-85235da47a7944ce",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201723.4228992,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.635800030082464,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-5a01b0ae5c334dd5",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201723.9228418,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 8.927699993364513,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-6f5b391628ed4c42",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201724.4809504,
+   "phase": "recovery",
+   "status": 202,
+   "latency_ms": 9.236800018697977,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [],
+   "deferred": true,
+   "deferred_done_s": 37.49,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0373e9b0da784d76",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201725.713163,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 8.232999942265451,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-753c13ec4ca440fd",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201729.7243054,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.512999909929931,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-50418c207a624ecb",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201730.8633106,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 11.303799925372005,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-68746a259e76453b",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201731.9392252,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 455.77929995488375,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 441.7,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4a9c4ef821144d84",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201733.2346723,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.661199990659952,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-32a9ef52807648b3",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201734.5006368,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 13.982499949634075,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e9ea2b9c48c74429",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201739.4358203,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.36199992429465,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1ebf0a21d96c4a9b",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201740.491083,
+   "phase": "recovery",
+   "status": 202,
+   "latency_ms": 10.308800032362342,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [],
+   "deferred": true,
+   "deferred_done_s": 5.04,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7ff5822931cc4d4b",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201741.1313093,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.243399952538311,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-15b2480e8a6c477b",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201742.877974,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.845799999311566,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-3551996308ab40e0",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201744.841921,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 9.315299917943776,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-92526459de5c48c0",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201745.759329,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 1211.8914000457153,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 1198.1,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8347d782c55f4956",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201746.0381079,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 1916.2171999923885,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 1902.5,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-ceda86c514344922",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201746.412845,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 10.675600031390786,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-09599c07085947c7",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201747.2087464,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 12.756299925968051,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-971ba04d79dc46a6",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201747.4740474,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 698.9180999808013,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 680.9,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c366966bc7eb488e",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201750.928177,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 10700.777600053698,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 10683.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d62681b79e8c4e97",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201752.8251543,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2732.5608999235556,
+   "provider": "ollama_cpu",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 212.4,
+     "probe": true,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2721.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-624807c1f7d24830",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201753.4166348,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 9426.45269993227,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 9411.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-b24701a9aa6f4d5d",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201754.8804812,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 8937.036299961619,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 8919.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e2153135cde24ce2",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201756.334246,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7627.360200043768,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 7611.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e0c62f1df75a4572",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201757.1614084,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7007.5437000487,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 6994.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0008869d12a6494b",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201758.2073588,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2825.8372000418603,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 298.6,
+     "probe": true,
+     "hedge": true
+    },
+    {
+     "provider": "ollama",
+     "outcome": "cancelled",
+     "latency_ms": 2812.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e355bcfef51143f4",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201759.0956879,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 5770.887900027446,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 5755.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-22de076703b542a3",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201760.1108475,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 5731.639600009657,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 5715.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-28f976e5e0f04ee1",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201761.1216063,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 4946.629299898632,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 4931.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-82b8d557fe3b4afe",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201762.7411473,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 3553.3643999369815,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 3538.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-6b2c8c92ede642d2",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201766.2935777,
+   "phase": "recovery",
+   "status": 503,
+   "latency_ms": 8.627300034277141,
+   "provider": null,
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": false,
+   "error": "providers_degraded",
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4cc0cd527d4a480a",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201767.8278475,
+   "phase": "recovery",
+   "status": 202,
+   "latency_ms": 10.46599994879216,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [],
+   "deferred": true,
+   "deferred_done_s": 3.03,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8f711d3a615a4fe7",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201771.022734,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2191.9517999049276,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2177.7,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-b8db52abc7104a73",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201773.2650928,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 133.8230000110343,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 121.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-86dd76f3dacd4df0",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201774.593658,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 108.11530007049441,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 95.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1e996f1acb5f46a9",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201776.0920982,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2184.1975999996066,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2169.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8e5fb2fcb3954b1a",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201776.4014523,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 96.40020004007965,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 83.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-73d62a3aa2174b53",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201780.9635365,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 132.96469999477267,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 120.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f03c3071e1ec4f71",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201781.6006708,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 212.5438000075519,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 198.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0750fdd9d60b4fcc",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201781.863779,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 87.35349995549768,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 75.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1b6a0ca3e5c8403a",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201782.4858623,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 505.7285000802949,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 492.3,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0415b74bb2534257",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201783.7959552,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 155.33600002527237,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 141.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a47d944b07944bf1",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201784.6806748,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 259.2244999250397,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 245.7,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-6c49a72eb9c94610",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201786.1296868,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 221.1341999936849,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 198.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a4ff74504a9045cd",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201787.019521,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 85.19640006124973,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 72.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-cdd9a12f35364311",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201794.5525444,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2550.0153999309987,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 2511.6,
+     "probe": true,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "cancelled",
+     "latency_ms": 7.9,
+     "probe": false,
+     "hedge": true
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-462b81d168a341ad",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201794.9576328,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2303.3099999884143,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2287.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-928d3320aa7b40ec",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201796.7009656,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 222.66369999852031,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 204.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-aae4e8aa78a8446e",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201801.1289563,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 474.47820007801056,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 454.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-ffbc393998d04c32",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201802.1315818,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 255.73840003926307,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 244.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-645e96be48a74ad2",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201802.5207837,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 184.34959999285638,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 173.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1a0f7fd9971143d1",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201803.2854512,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 293.3382000774145,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 282.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-1e84e2f36b7d4d61",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201803.9872103,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 489.32849999982864,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 475.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-4dc7e4fd82794818",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201805.035472,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 273.87549995910376,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 261.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-eb97601d75e64088",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201805.3462994,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 654.3254000134766,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 642.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-7bf2496ad6c9435a",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201806.4061213,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 537.0668000541627,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 521.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2d90d60471504515",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201807.0445855,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 292.7466999972239,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 281.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-b267a5898afa4b29",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201808.1500762,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 170.96439993474633,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 156.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a772e979e8304113",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201808.226641,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 589.6037999773398,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 572.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c9733e553360475c",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201808.553081,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 326.5446999575943,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 304.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e3c9c223012440e1",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201808.928226,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 302.7848000638187,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 290.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a0711524a83c4489",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201809.0836587,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 390.48669999465346,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 376.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-9f7300f21c2c4bcf",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201810.3643482,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 152.4383999640122,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 139.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-2e3b0c0898de4f7b",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201811.594548,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 131.070000003092,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 119.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-3c3f00fe83ff4a64",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201812.8846083,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 400.6070999894291,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 383.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c58c4a1725944233",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201812.9465613,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 933.2153999712318,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 921.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f3e0543decf5404b",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201815.9332378,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 688.4065000340343,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 675.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-a48f7fc4962b4fa3",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201815.9332378,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 2602.913099923171,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 2586.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-b99505fe94824ce9",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201821.2025883,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 315.5455000232905,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 303.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-c1a01598187c4cc9",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201821.869434,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 330.5324000539258,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 240.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": true,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-43f417a9f74e43e3",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201823.286254,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 596.6840999899432,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 584.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-8fba30e39cb0400b",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201824.0812805,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 180.76819996349514,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 162.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-0f62e00d13694673",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201824.7522008,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 206.2194999307394,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 185.8,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e2ebc0bbc5f44b71",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201824.9542475,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 155.75290005654097,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 143.3,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-d4d0cdf72a5548d3",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201825.5601137,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 254.8093000659719,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 242.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-e30a7a5aecaa4654",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201826.445004,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 274.50619998853654,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 262.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-613ce767396a47eb",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201828.9028084,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 549.6063999598846,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 487.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": true,
+   "replay_matches": null
+  },
+  {
+   "rid": "lg-f1f20f7ca7584dc1",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201832.0386078,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 320.4676000168547,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 308.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": null,
+   "replay": false,
+   "replay_matches": null
+  }
+ ],
+ "duplicates": [
+  {
+   "rid": "lg-8a7159d454414e96",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201544.2452035,
+   "phase": "warmup",
+   "status": 200,
+   "latency_ms": 7.998600020073354,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 356.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-8a7159d454414e96",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-30be2e6381a7432b",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201567.8546593,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 7.530300063081086,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 2169.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-30be2e6381a7432b",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-649323f3f5d7440a",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201589.0480425,
+   "phase": "baseline",
+   "status": 200,
+   "latency_ms": 7.719699991866946,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 117.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-649323f3f5d7440a",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-8186b5310f534020",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201658.3552191,
+   "phase": "outage",
+   "status": 200,
+   "latency_ms": 7.001099991612136,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 376.5,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-8186b5310f534020",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-d1efd217a7624314",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201717.3074307,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7.286299951374531,
+   "provider": "groq",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 115.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-d1efd217a7624314",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-8347d782c55f4956",
+   "tenant": "globex",
+   "feature": "reply-suggest",
+   "cls": "generate",
+   "t_send": 1792201748.5171957,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7.91309995111078,
+   "provider": "ollama",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 1902.5,
+     "probe": true,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-8347d782c55f4956",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-28f976e5e0f04ee1",
+   "tenant": "initech",
+   "feature": "ticket-router",
+   "cls": "classify",
+   "t_send": 1792201761.1216063,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 5056.833400041796,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama_cpu",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "groq",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 4931.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-28f976e5e0f04ee1",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-e355bcfef51143f4",
+   "tenant": "globex",
+   "feature": "nightly-summaries",
+   "cls": "batch",
+   "t_send": 1792201765.8177922,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 9.679100010544062,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 5755.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-e355bcfef51143f4",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-86dd76f3dacd4df0",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201775.264249,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 15.105800004675984,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 95.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-86dd76f3dacd4df0",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-73d62a3aa2174b53",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201781.863779,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7.21959990914911,
+   "provider": "ollama_cpu",
+   "failovers": 1,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "skipped_half_open",
+     "latency_ms": null,
+     "probe": false,
+     "hedge": false
+    },
+    {
+     "provider": "ollama_cpu",
+     "outcome": "ok",
+     "latency_ms": 120.2,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-73d62a3aa2174b53",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-1e84e2f36b7d4d61",
+   "tenant": "acme",
+   "feature": "email-draft",
+   "cls": "generate",
+   "t_send": 1792201803.9872103,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 530.5704000638798,
+   "provider": "groq",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "groq",
+     "outcome": "ok",
+     "latency_ms": 475.7,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-1e84e2f36b7d4d61",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-a772e979e8304113",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201809.53596,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 8.107900037430227,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 572.6,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-a772e979e8304113",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-3c3f00fe83ff4a64",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201814.9410229,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 8.357999962754548,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 383.9,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-3c3f00fe83ff4a64",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-c58c4a1725944233",
+   "tenant": "initech",
+   "feature": "report-batch",
+   "cls": "batch",
+   "t_send": 1792201815.542285,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 7.382200099527836,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 921.0,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-c58c4a1725944233",
+   "replay": true,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-c1a01598187c4cc9",
+   "tenant": "acme",
+   "feature": "support-triage",
+   "cls": "classify",
+   "t_send": 1792201821.869434,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 252.21249996684492,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 240.4,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-c1a01598187c4cc9",
+   "replay": false,
+   "replay_matches": true
+  },
+  {
+   "rid": "lg-613ce767396a47eb",
+   "tenant": "globex",
+   "feature": "review-sentiment",
+   "cls": "classify",
+   "t_send": 1792201828.9028084,
+   "phase": "recovery",
+   "status": 200,
+   "latency_ms": 500.40569994598627,
+   "provider": "ollama",
+   "failovers": 0,
+   "attempts": [
+    {
+     "provider": "ollama",
+     "outcome": "ok",
+     "latency_ms": 487.1,
+     "probe": false,
+     "hedge": false
+    }
+   ],
+   "deferred": false,
+   "deferred_done_s": null,
+   "ok": true,
+   "error": null,
+   "duplicate_of": "lg-613ce767396a47eb",
+   "replay": false,
+   "replay_matches": true
+  }
+ ]
+}

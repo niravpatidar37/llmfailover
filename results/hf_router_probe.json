@@ -1,0 +1,21 @@
+{
+ "endpoint": "https://router.huggingface.co/v1/chat/completions",
+ "models_tried": [
+  "meta-llama/Llama-3.1-8B-Instruct",
+  "meta-llama/Llama-3.1-8B-Instruct:featherless-ai",
+  "google/gemma-3-4b-it:featherless-ai",
+  "Qwen/Qwen3-4B-Instruct-2507:nscale",
+  "prism-ml/Ternary-Bonsai-27B-gguf:together"
+ ],
+ "probes_utc": [
+  "2026-10-17T00:56Z",
+  "2026-10-17T01:45Z"
+ ],
+ "http_status": 402,
+ "error": "You have no remaining credits. Purchase pre-paid credits to continue using Inference Providers. Alternatively, subscribe to PRO to get monthly included credits.",
+ "account": {
+  "isPro": false,
+  "canPay": false
+ },
+ "gateway_mapping": "HTTP 402 -> ErrorType.auth (credential cannot be used); provider disabled by default via HF_ENABLED"
+}
