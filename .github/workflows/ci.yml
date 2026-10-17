@@ -1,0 +1,102 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.9.21"
+  LITELLM_LOCAL_MODEL_COST_MAP: "True"
+
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv sync --frozen
+      # Tests use fakeredis and a scripted fake provider: no secrets, no network LLM calls.
+      - run: uv run pytest -q
+
+  security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - name: bandit
+        run: uv run bandit -q -r src -c pyproject.toml
+      - name: pip-audit (runtime deps, hash-pinned from uv.lock)
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/req.txt"
+          uv run pip-audit -r "$RUNNER_TEMP/req.txt" --disable-pip --require-hashes
+      - name: gitleaks (full history)
+        run: >
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo"
+          zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          detect --source /repo --redact --no-banner -v
+
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: build image
+        run: docker build -t self-healing-llm-gateway:ci .
+      - name: container starts as non-root and serves /healthz with redis
+        run: |
+          docker network create gwci
+          docker run -d --name redis --network gwci redis:7.4.11-alpine
+          docker run -d --name gw --network gwci -e REDIS_URL=redis://redis:6379/0 \
+            -e LLM_SPEND_LEDGER=/tmp/ledger.jsonl self-healing-llm-gateway:ci
+          for i in $(seq 1 30); do
+            if docker exec gw python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8103/healthz')"; then break; fi
+            sleep 2
+          done
+          test "$(docker exec gw id -u)" = "10001"
+          docker exec gw python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8103/healthz').read())"
+      - name: trivy image scan (HIGH/CRITICAL, fixed)
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
+          aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
+          self-healing-llm-gateway:ci
