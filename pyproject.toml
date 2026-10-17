@@ -1,0 +1,76 @@
+[project]
+name = "self-healing-llm-gateway"
+version = "0.1.0"
+description = "OpenAI-compatible LLM gateway with per-provider circuit breaking, failover, hedging, deferrable queueing and per-tenant cost attribution."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+    "litellm==1.105.1",
+    "fastapi==0.143.3",
+    "uvicorn==0.54.0",
+    "redis==8.1.0",
+    "prometheus-client==0.26.0",
+    "pydantic>=2.11,<3",
+    "httpx>=0.28,<0.29",
+    "python-dotenv>=1.0",
+    "portalocker==4.4.1",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "fakeredis==2.40.0",
+    "ruff==0.17.1",
+    "mypy==2.4.0",
+    "types-PyYAML",
+    "bandit==1.9.4",
+    "pip-audit==2.10.1",
+]
+screenshot = ["playwright==1.64.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gateway"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM"]
+ignore = ["S101", "RUF001", "RUF002", "RUF003", "S311"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S108"]
+"scripts/**" = ["S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+files = ["src/gateway"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["litellm.*", "fakeredis.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

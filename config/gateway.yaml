@@ -1,0 +1,108 @@
+# Gateway configuration: providers, request classes, breaker and hedging policy.
+#
+# PRICES ARE ESTIMATES - verify against provider pricing pages before trusting any dollar figure:
+#   Groq:          https://groq.com/pricing  (gpt-oss-20b listed at $0.075 in / $0.30 out per 1M tokens;
+#                  we use the older, higher launch rate $0.10 / $0.50 so the spend cap errs on the safe side)
+#   Hugging Face:  https://huggingface.co/inference/pricing  (router price for Llama-3.1-8B-Instruct ranged
+#                  $0.02-0.06 in / $0.05-0.06 out per 1M across providers on 2026-10-16; we use the max)
+#   Anthropic:     https://www.anthropic.com/pricing  (placeholder; adapter dormant without ANTHROPIC_API_KEY)
+#   Ollama / local: $0
+providers:
+  ollama:
+    # Host Ollama on the GPU (RTX 3060 6 GB). Primary for most traffic.
+    litellm_model: "ollama_chat/llama3.1:8b"
+    api_base_env: OLLAMA_URL
+    api_base_default: "http://127.0.0.1:11434"
+    paid: false
+    price_in_per_m: 0.0
+    price_out_per_m: 0.0
+    timeout_s: 20
+    latency_budget_ms: 6000
+    extra: { keep_alive: "30m" }
+  ollama_cpu:
+    # A second, independent runtime: Ollama in a Docker container on CPU with a 0.5B model.
+    # Distinct failure domain from the host GPU Ollama (different process, VM and hardware).
+    litellm_model: "ollama_chat/qwen2.5:0.5b"
+    api_base_env: OLLAMA_CPU_URL
+    api_base_default: "http://127.0.0.1:11435"
+    paid: false
+    price_in_per_m: 0.0
+    price_out_per_m: 0.0
+    timeout_s: 20
+    latency_budget_ms: 6000
+    extra: { keep_alive: "30m" }
+  groq:
+    litellm_model: "groq/openai/gpt-oss-20b"
+    api_key_env: GROQ_API_KEY
+    api_base_default: "https://api.groq.com/openai/v1"
+    paid: true
+    price_in_per_m: 0.10
+    price_out_per_m: 0.50
+    timeout_s: 15
+    latency_budget_ms: 4000
+    # gpt-oss is a reasoning model: reasoning tokens count against max_tokens, so give it a floor.
+    min_max_tokens: 48
+    extra: { reasoning_effort: "low" }
+  hf:
+    # Hugging Face Inference Providers through the OpenAI-compatible router.
+    # Disabled by default: this account returned HTTP 402 "no remaining credits" on 2026-10-16.
+    litellm_model: "openai/meta-llama/Llama-3.1-8B-Instruct"
+    api_key_env: HF_TOKEN
+    api_base_default: "https://router.huggingface.co/v1"
+    enabled_env: HF_ENABLED
+    paid: true
+    price_in_per_m: 0.06
+    price_out_per_m: 0.06
+    timeout_s: 15
+    latency_budget_ms: 5000
+  anthropic:
+    # Optional 4th provider; dormant unless ANTHROPIC_API_KEY is set.
+    # PLACEHOLDER model id - verify with GET https://api.anthropic.com/v1/models before enabling.
+    litellm_model: "anthropic/VERIFY-MODEL-ID-VIA-GET-v1-models"
+    api_key_env: ANTHROPIC_API_KEY
+    enabled_env: ANTHROPIC_API_KEY
+    paid: true
+    price_in_per_m: 1.00
+    price_out_per_m: 5.00
+    timeout_s: 20
+    latency_budget_ms: 8000
+
+# Request classes: mode (interactive fails fast; deferrable is queued when every provider is degraded),
+# a provider preference list, and optional hedging for latency-sensitive classes.
+classes:
+  classify:
+    mode: interactive
+    preference: [ollama, ollama_cpu, groq, hf, anthropic]
+    max_tokens_cap: 16
+    hedge_after_ms: 2500
+  generate:
+    mode: interactive
+    preference: [groq, ollama, ollama_cpu, hf, anthropic]
+    max_tokens_cap: 128
+  batch:
+    mode: deferrable
+    preference: [ollama, ollama_cpu, hf, groq, anthropic]
+    max_tokens_cap: 128
+
+breaker:
+  window_s: 30            # sliding window for error rate and latency percentiles
+  min_samples: 4          # do not judge a provider on fewer samples than this
+  error_rate_threshold: 0.5
+  open_cooldown_s: 10     # first open period; doubles after each failed half-open probe
+  max_cooldown_s: 30
+  half_open_probe_ratio: 0.2   # share of eligible traffic sent to a half-open provider
+  half_open_successes: 3       # consecutive probe successes needed to close
+
+hedging:
+  max_hedges_per_minute: 30    # hedge budget: caps the extra spend/compute hedging can cause
+
+queue:
+  base_delay_s: 1.0
+  max_delay_s: 30.0
+  max_attempts: 12
+  poll_interval_s: 0.5
+
+limits:
+  max_prompt_chars: 8000
+  max_messages: 32
+  max_features_per_tenant: 50

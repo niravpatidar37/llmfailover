@@ -1,0 +1,24 @@
+# secrets
+.env
+.env.*
+!.env.example
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+# data / caches / weights
+data/
+cache/
+*.gguf
+*.safetensors
+*.bin
+wandb/
+logs/
+*.log
+results/tmp/
