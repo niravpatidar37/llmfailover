@@ -1,8 +1,69 @@
-# Self-Healing LLM Gateway
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/logo-dark.svg">
+    <img alt="llmfailover" src="assets/brand/logo.svg" width="360">
+  </picture>
+</p>
 
-An OpenAI-compatible LLM gateway with per-provider circuit breakers, automatic failover, hedging, a deferrable retry queue and per-tenant cost attribution. In a measured chaos run where **both local model runtimes went down for 90 s, clients still got answers for 83.9% of requests (80.0% of interactive ones) by failing over to Groq**, the only independent external provider. A Groq free-tier rate limit capped that number (details below). All four runs together produced **0 duplicate side effects across 141 duplicate submissions**.
+<p align="center">
+  <b>When an LLM provider goes down, your requests route around it.</b><br>
+  An OpenAI-compatible gateway with Redis-shared circuit breakers, half-open self-healing, hedging,
+  idempotency keys, a deferrable queue and per-tenant cost attribution. Proven by chaos runs.
+</p>
 
-> **Deployment status: deploy-ready; not applied (no cloud account connected).** Terraform for Google Cloud Run, a CD workflow and the runbook are in the repo and pass CI, but nothing has been deployed. The measured results below are from the local docker compose stack. See [Deployment](#deployment).
+<p align="center">
+  <img alt="Terminal recording: classify traffic is served by local Ollama; the chaos proxy makes every Ollama call return HTTP 503; the gateway's ollama breaker trips on error rate and requests are answered by Groq instead; the fault is cleared, the breaker goes half-open, three probes succeed and it closes; three re-sends of an already-answered request_id are replayed from the store with one commit; 25 of 25 requests answered." src="assets/demo/demo.gif" width="780">
+  <br><sub>A real session against the local stack, at real speed. <a href="assets/demo/README.md">What was real and how it was recorded</a>.</sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/niravpatidar37/llmfailover/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/niravpatidar37/llmfailover/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776AB">
+</p>
+
+> **Status: working MVP, measured on one laptop.** In a chaos run where **both local model runtimes went
+> down for 90 s, clients still got answers for 83.9% of requests (80.0% of interactive ones)** by failing over
+> to Groq, and four runs produced **0 duplicate side effects across 141 duplicate submissions**. The run with
+> 100% availability failed over to a second runtime **on the same host**, so it is not an independent-failure
+> claim. Cloud deployment is **deploy-ready, not applied** (no cloud account connected). Read
+> [What did not work](#what-did-not-work) before relying on it.
+
+## The problem
+
+An application that calls one LLM provider inherits all of that provider's bad days, and naive retries make
+them worse.
+
+- **Providers fail and throttle.** Hosted APIs return 5xx during incidents and 429 when you exceed a quota;
+  Groq's free tier, used here, is limited per model in requests and tokens per minute
+  ([Groq rate limits](https://console.groq.com/docs/rate-limits)).
+- **Retrying a sick dependency piles on load.** The circuit-breaker pattern stops calling a failing
+  dependency and probes it before trusting it again ([Martin Fowler](https://martinfowler.com/bliki/CircuitBreaker.html));
+  retries need backoff with jitter ([AWS Builders' Library](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)).
+- **Slow is the new down.** A few slow calls dominate tail latency; hedged requests cut it at a bounded
+  cost ([Dean and Barroso, *The Tail at Scale*](https://research.google/pubs/the-tail-at-scale/)).
+- **Client retries cause duplicate work.** Without idempotency keys a timed-out request that actually
+  succeeded is executed again, and billed again ([Stripe](https://stripe.com/blog/idempotency)).
+
+llmfailover puts those four patterns in one small gateway in front of several providers, keeps their state in
+Redis so every instance agrees, and measures the result with a chaos proxy instead of asserting it.
+
+## What it does
+
+| | Behaviour | Where |
+|---|---|---|
+| **Failover** | Each request class has a provider preference list (`config/gateway.yaml`); the router walks it, skipping providers whose breaker is open. | `router.py` |
+| **Circuit breakers** | Per provider: trip on error rate (≥ 50% over ≥ 4 samples) or on p95 over the latency budget; open 10 s, doubling per failed probe up to 30 s. | `breaker.py`, `health.py` |
+| **Half-open self-healing** | After the cooldown, 20% of eligible traffic (max 2 in flight) probes the provider; 3 consecutive fast successes close the breaker. | `breaker.py` |
+| **Shared state** | Breaker transitions, probe leases, health windows, rate limits, hedge budget and spend cap are atomic Lua scripts in Redis, so any number of instances share one view. | `breaker.py`, `store.py` |
+| **Hedging** | `classify` fires a hedge on the next provider after 2.5 s; the loser is cancelled; at most 30 hedges/min. | `router.py` |
+| **Idempotency keys** | `request_id` is claimed with `SET NX`, scoped per tenant and checked against a body fingerprint; duplicates get the stored answer (`X-Idempotent-Replay: true`), never a second execution. | `store.py`, `service.py` |
+| **Deferrable queue** | When every provider for a deferrable class is degraded, the request is queued (HTTP 202) and retried with exponential backoff and jitter; poll `GET /v1/requests/{id}`. | `service.py` |
+| **Cost attribution** | Cost per tenant and feature in Prometheus (`gateway_cost_usd_total`) and Redis (`GET /admin/costs`); a hard spend cap is checked before every paid call. | `service.py`, `spend.py` |
+| **Chaos proxy** | Dev-only fault injection (error rate, status code, latency, duration) between the gateway and each provider; refuses to start in prod. | `chaos.py` |
+
+Error taxonomy: `rate_limit`, `timeout`, `server_error`, `content_filter`, `auth`, `connection`, `bad_request`,
+`budget`, `other`. Only health-relevant errors count toward a trip.
 
 ## Results (real runs, raw data in `results/`)
 
@@ -48,16 +109,44 @@ Breaker timelines (seconds from the start of the fault, taken from the gateway's
 
 More: `docs/grafana_brownout_during.png`, `docs/grafana_total_outage_during.png`, `docs/grafana_local_host_outage_during.png`.
 
-**Demo video: TODO (human): record 90s demo.** Shot list:
-1. (0-10 s) Grafana board, healthy: RPS mostly `ollama`, a thin `groq` line, all breakers green.
-2. (10-20 s) Run `scripts/loadgen.py --provider ollama,ollama_cpu ...` and show the chaos proxy `PUT /admin/faults/...` call.
-3. (20-40 s) Error-rate spike, breakers turn red, the failover bars fill, RPS moves to `groq`.
-4. (40-55 s) The `groq` 429s appear in the error taxonomy panel. Explain the shared rate limit.
-5. (55-75 s) Clear the fault: breakers go yellow (half-open probes), then green. RPS moves back to local.
-6. (75-90 s) Terminal shows the loadgen headline: availability, failovers, 0 duplicate side effects.
-
 ### Resume line (filled from the runs above)
 Built an LLM gateway with per-provider circuit breaking and automatic failover; sustained 83.9% client availability (80.0% interactive) through a 90-second outage of every local model runtime, failing over to an external provider, with 0 duplicate side effects across 141 retried requests and per-tenant/per-feature cost attribution.
+
+## Quick start
+
+```bash
+uv sync                                   # Python 3.12 venv from uv.lock
+uv run python scripts/init_env.py         # gitignored .env: random admin/chaos tokens + Grafana password
+docker compose -p p3-gateway up -d        # redis :16380, prometheus :19090, grafana :13001, ollama-cpu :11435
+docker exec p3-gateway-ollama-cpu-1 ollama pull qwen2.5:0.5b
+# host Ollama with llama3.1:8b on :11434; GROQ_API_KEY in $PORTFOLIO_ENV_FILE
+
+# gateway on 127.0.0.1:8103 (and, for chaos tests, the proxy on 127.0.0.1:8113)
+CHAOS_ENABLED=1 uv run python -m gateway.chaos &
+CHAOS_ENABLED=1 CHAOS_PROXY_URL=http://127.0.0.1:8113 uv run python -m gateway.app &
+
+uv run python -m gateway.migrate         # versioned Redis keyspace migrations (/readyz is 503 until run)
+uv run python scripts/smoke.py
+uv run python scripts/loadgen.py --provider ollama,ollama_cpu --outage 90 --rate 0.7 --out results/local_host_outage_run.json
+uv run python scripts/analyze.py          # -> results/summary.json
+uv sync --group screenshot && uv run playwright install chromium && uv run python scripts/grafana_screenshot.py
+uv run pytest -q                          # 117 tests; 17 need a real Redis (REDIS_TEST_URL), else skipped
+docker compose -p p3-gateway stop
+```
+
+Example request (any OpenAI client works; the metadata can also be sent as `X-Tenant-Id`, `X-Feature`, `X-Request-Id` and `X-Request-Class` headers):
+
+```bash
+curl -s 127.0.0.1:8103/v1/chat/completions -H "Authorization: Bearer $TENANT_KEY" -d '{
+  "messages":[{"role":"user","content":"Sentiment? great film"}],"max_tokens":4,
+  "metadata":{"tenant":"acme","feature":"support-triage","request_id":"req-000123","request_class":"classify"}}'
+```
+
+Tenants are created with `POST /admin/tenants {"tenant":"acme","rpm":600}` and `X-Admin-Token`. The key is returned once.
+
+To watch a breaker trip and heal in your terminal, with the stack above running:
+`uv run python assets/demo/demo.py` (it calls Groq only when a hedge or failover reaches it; see
+[assets/demo/README.md](assets/demo/README.md)).
 
 ## Architecture
 
@@ -123,7 +212,11 @@ flowchart LR
 * **Headline bookkeeping bug:** run C's raw `headline` reports a breaker trip at -49 s. That was a pre-fault p95 trip picked up by an early version of the loadgen summary. `scripts/analyze.py` recomputes the trip from events after the fault starts (fixed in the loadgen for later runs).
 * **Grafana kiosk mode rendered empty time-series panels in headless Chromium.** The screenshot script uses the normal view.
 
-## Security
+* **In the recorded demo, the same-host CPU runtime lost every hedge race** (it answered slower than the 2.5 s
+  hedge delay plus Groq), so outage traffic went to Groq. Not investigated further; details in
+  [assets/demo/README.md](assets/demo/README.md).
+
+## Security model
 
 **Threat model.** Untrusted callers (tenants) and untrusted model output. The assets are the provider API keys, tenants' prompts (PII), cross-tenant results, and spend. Out of scope: a hostile host OS. Locally there is no TLS (localhost only); in the GCP deployment TLS terminates at Cloud Run and Redis traffic uses TLS + AUTH over the VPC.
 
@@ -175,41 +268,12 @@ Other controls:
 
 ## Cost
 
-* **Actual spend for this project (ledger):** $0.0058 over 190 paid Groq calls. That covers development probes, four chaos runs and one dry run, at estimated list prices ($0.10 per 1M input and $0.50 per 1M output tokens, higher than Groq's current published price, so the cap errs safe).
+* **Actual spend for this project (shared ledger, 2026-10-18):** **$0.0081 over 277 paid Groq calls**, at
+  estimated list prices ($0.10 per 1M input and $0.50 per 1M output tokens, higher than Groq's current published
+  price, so the cap errs safe). Of that, $0.0058 (190 calls) covers development probes, the four chaos runs and
+  one dry run, and $0.0024 (87 calls) covers the four takes of the demo recording.
 * **Local Ollama:** $0.
 * **Attribution:** the gateway attributes cost per tenant and feature in Prometheus (`gateway_cost_usd_total`) and in Redis (`GET /admin/costs`). The dashboard shows cost per hour by tenant and feature.
-
-## Setup and run
-
-```bash
-uv sync                                   # Python 3.12 venv from uv.lock
-uv run python scripts/init_env.py         # gitignored .env: random admin/chaos tokens + Grafana password
-docker compose -p p3-gateway up -d        # redis :16380, prometheus :19090, grafana :13001, ollama-cpu :11435
-docker exec p3-gateway-ollama-cpu-1 ollama pull qwen2.5:0.5b
-# host Ollama with llama3.1:8b on :11434; GROQ_API_KEY in $PORTFOLIO_ENV_FILE
-
-# gateway on 127.0.0.1:8103 (and, for chaos tests, the proxy on 127.0.0.1:8113)
-CHAOS_ENABLED=1 uv run python -m gateway.chaos &
-CHAOS_ENABLED=1 CHAOS_PROXY_URL=http://127.0.0.1:8113 uv run python -m gateway.app &
-
-uv run python -m gateway.migrate         # versioned Redis keyspace migrations (/readyz is 503 until run)
-uv run python scripts/smoke.py
-uv run python scripts/loadgen.py --provider ollama,ollama_cpu --outage 90 --rate 0.7 --out results/local_host_outage_run.json
-uv run python scripts/analyze.py          # -> results/summary.json
-uv sync --group screenshot && uv run playwright install chromium && uv run python scripts/grafana_screenshot.py
-uv run pytest -q                          # 117 tests; 17 need a real Redis (REDIS_TEST_URL), else skipped
-docker compose -p p3-gateway stop
-```
-
-Example request (any OpenAI client works; the metadata can also be sent as `X-Tenant-Id`, `X-Feature`, `X-Request-Id` and `X-Request-Class` headers):
-
-```bash
-curl -s 127.0.0.1:8103/v1/chat/completions -H "Authorization: Bearer $TENANT_KEY" -d '{
-  "messages":[{"role":"user","content":"Sentiment? great film"}],"max_tokens":4,
-  "metadata":{"tenant":"acme","feature":"support-triage","request_id":"req-000123","request_class":"classify"}}'
-```
-
-Tenants are created with `POST /admin/tenants {"tenant":"acme","rpm":600}` and `X-Admin-Token`. The key is returned once.
 
 ## Deployment
 
@@ -281,3 +345,39 @@ is skipped and the workflow passes.
 | App: `/healthz` vs `/readyz`, graceful shutdown, env-only config, JSON logs, migrations job, kill switch, prod guards, Secret Manager tenant keys (all tested) | `gcloud run deploy --container`, `gcloud run worker-pools deploy` and the identity-token audience behave exactly as scripted in `deploy.yml` |
 | Image refuses prod + chaos (CI docker job) | GMP sidecar CPU sizing (1 vCPU is conservative), and that the default scrape config is enough |
 | Shared breaker semantics on real Redis 7 (CI service container) | Memorystore TLS/AUTH connection details from Cloud Run (server CA via `REDIS_CA_CERT_PEM`) |
+
+## Project layout
+
+```
+src/gateway/           app (FastAPI), router, breaker, health windows, store (Redis), service, queue worker,
+                       spend cap, chaos proxy, config, redaction, migrations/
+config/                gateway.yaml (dev providers + classes), gateway.prod.yaml (external providers only)
+scripts/               loadgen.py (chaos runs), analyze.py (-> results/summary.json), smoke.py, init_env.py,
+                       make_tenant_key.py, grafana_screenshot.py, smoke_deploy.sh
+results/               raw per-request chaos runs, summary.json, HF 402 probe, mutation-check results
+tests/                 117 tests: unit, API, security controls, multi-instance (fakeredis, real Redis, 2 processes)
+deploy/                Prometheus config and the provisioned Grafana dashboard
+infra/terraform/       Cloud Run module + envs/staging, envs/prod
+docs/                  RUNBOOK.md, SLO.md, Grafana screenshots from the runs
+assets/brand/          logo, icons, favicon, social preview + build_brand.py
+assets/demo/           demo.gif, demo.cast, demo.py (scenario), record.py (cast recorder), frame.py
+```
+
+## Part of a portfolio
+
+Five LLM-engineering projects built to the same bar (real runs, committed raw results, a shared hard spend cap,
+CI with security scans, deploy-ready Terraform):
+
+| Repo | What it is |
+|---|---|
+| [hopcite](https://github.com/niravpatidar37/hopcite) | Graph RAG with cited multi-hop answers |
+| [tracedresearch](https://github.com/niravpatidar37/tracedresearch) | LangGraph multi-agent research assistant with cited reports and per-step traces |
+| **llmfailover** | this repo: the reliability layer between apps and model providers |
+| [kappajudge](https://github.com/niravpatidar37/kappajudge) | LLM-as-a-judge calibrated against human ratings (weighted kappa, bias checks) |
+| [distillroi](https://github.com/niravpatidar37/distillroi) | Distils a large teacher into a QLoRA student served by vLLM, with a router that escalates hard queries |
+
+They share the spend-ledger design and the Groq + Ollama setup; none of them routes through this gateway today.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Brand assets: [assets/brand/README.md](assets/brand/README.md).
