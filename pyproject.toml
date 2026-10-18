@@ -53,6 +53,8 @@ ignore = ["S101", "RUF001", "RUF002", "RUF003", "S311"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106", "S108"]
 "scripts/**" = ["S603", "S607"]
+# brand/demo tooling: long SVG path and ANSI-colour f-strings
+"assets/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

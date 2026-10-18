@@ -29,3 +29,9 @@ results/tmp/
 *.tfplan
 crash.log
 infra/terraform/modules/**/.terraform.lock.hcl
+
+# brand build cache (font archive is fetched + checksum-verified)
+assets/brand/tools/.cache/
+# demo scratch
+assets/demo/raw.gif
+assets/demo/.work/

@@ -12,3 +12,4 @@ logs
 .pytest_cache
 infra
 .github
+assets
