@@ -1,4 +1,4 @@
-# Runbook: self-healing LLM gateway on Google Cloud Run
+# Runbook: llmfailover on Google Cloud Run
 
 **Status: deploy-ready; not applied (no cloud account connected).** Every command below is written against the
 Terraform in `infra/terraform/` and the CD workflow in `.github/workflows/deploy.yml`, but none of it has been
@@ -21,7 +21,7 @@ Shell variables used below:
 ```bash
 export PROJECT=my-gcp-project REGION=us-central1 ENV=staging     # or ENV=prod
 export P=llm-gateway-$ENV
-export REPO=niravpatidar37/self-healing-llm-gateway
+export REPO=niravpatidar37/llmfailover
 ```
 
 ## 1. One-time bootstrap (per project)

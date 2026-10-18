@@ -184,7 +184,7 @@ def create_app(
                 await redis.aclose()
 
     app = FastAPI(
-        title="Self-Healing LLM Gateway",
+        title="llmfailover",
         version="0.1.0",
         lifespan=lifespan,
         docs_url=None,

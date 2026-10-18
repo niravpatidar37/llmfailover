@@ -716,6 +716,65 @@ wheels = [
 ]
 
 [[package]]
+name = "llmfailover"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "litellm" },
+    { name = "portalocker" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "redis" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "bandit" },
+    { name = "fakeredis", extra = ["lua"] },
+    { name = "mypy" },
+    { name = "pip-audit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
+]
+screenshot = [
+    { name = "playwright" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = "==0.143.3" },
+    { name = "httpx", specifier = ">=0.28,<0.29" },
+    { name = "litellm", specifier = "==1.105.1" },
+    { name = "portalocker", specifier = "==4.4.1" },
+    { name = "prometheus-client", specifier = "==0.26.0" },
+    { name = "pydantic", specifier = ">=2.11,<3" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "redis", specifier = "==8.1.0" },
+    { name = "uvicorn", specifier = "==0.54.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "bandit", specifier = "==1.9.4" },
+    { name = "fakeredis", extras = ["lua"], specifier = "==2.40.0" },
+    { name = "mypy", specifier = "==2.4.0" },
+    { name = "pip-audit", specifier = "==2.10.1" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-asyncio", specifier = "==1.4.0" },
+    { name = "ruff", specifier = "==0.17.1" },
+    { name = "types-pyyaml" },
+]
+screenshot = [{ name = "playwright", specifier = "==1.64.0" }]
+
+[[package]]
 name = "lupa"
 version = "2.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1386,65 +1445,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/76/43/35e4d8aa320bffe82
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/e7/5c595c75e9f41a44f30e526eda465ea0b4eec93470e074e4a111b253f13a/s3transfer-0.19.2-py3-none-any.whl", hash = "sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25", size = 90216, upload-time = "2026-07-22T19:30:43.251Z" },
 ]
-
-[[package]]
-name = "self-healing-llm-gateway"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "litellm" },
-    { name = "portalocker" },
-    { name = "prometheus-client" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "redis" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "bandit" },
-    { name = "fakeredis", extra = ["lua"] },
-    { name = "mypy" },
-    { name = "pip-audit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-    { name = "types-pyyaml" },
-]
-screenshot = [
-    { name = "playwright" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = "==0.143.3" },
-    { name = "httpx", specifier = ">=0.28,<0.29" },
-    { name = "litellm", specifier = "==1.105.1" },
-    { name = "portalocker", specifier = "==4.4.1" },
-    { name = "prometheus-client", specifier = "==0.26.0" },
-    { name = "pydantic", specifier = ">=2.11,<3" },
-    { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "redis", specifier = "==8.1.0" },
-    { name = "uvicorn", specifier = "==0.54.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "bandit", specifier = "==1.9.4" },
-    { name = "fakeredis", extras = ["lua"], specifier = "==2.40.0" },
-    { name = "mypy", specifier = "==2.4.0" },
-    { name = "pip-audit", specifier = "==2.10.1" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-asyncio", specifier = "==1.4.0" },
-    { name = "ruff", specifier = "==0.17.1" },
-    { name = "types-pyyaml" },
-]
-screenshot = [{ name = "playwright", specifier = "==1.64.0" }]
 
 [[package]]
 name = "six"

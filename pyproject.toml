@@ -1,5 +1,5 @@
 [project]
-name = "self-healing-llm-gateway"
+name = "llmfailover"
 version = "0.1.0"
 description = "OpenAI-compatible LLM gateway with per-provider circuit breaking, failover, hedging, deferrable queueing and per-tenant cost attribution."
 readme = "README.md"

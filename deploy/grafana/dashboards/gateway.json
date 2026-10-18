@@ -1,6 +1,6 @@
 {
   "uid": "llm-gateway",
-  "title": "Self-Healing LLM Gateway",
+  "title": "llmfailover",
   "tags": [
     "llm",
     "gateway",

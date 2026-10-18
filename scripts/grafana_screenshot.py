@@ -33,7 +33,7 @@ def main() -> None:
         page.fill("input[name='password']", password)
         page.click("button[type='submit']")
         page.wait_for_url(lambda u: "/login" not in u, timeout=20_000)
-        page.goto(f"{args.url}/d/llm-gateway/self-healing-llm-gateway?orgId=1&from={args.range}&to={args.to}")
+        page.goto(f"{args.url}/d/llm-gateway/llmfailover?orgId=1&from={args.range}&to={args.to}")
         time.sleep(args.wait)
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=args.out, full_page=True)

@@ -1,4 +1,4 @@
-# Local stack for the self-healing LLM gateway. Every port is bound to 127.0.0.1 only.
+# Local stack for llmfailover (the self-healing LLM gateway). Every port is bound to 127.0.0.1 only.
 #   docker compose -p p3-gateway up -d                 # redis, prometheus, grafana, ollama-cpu
 #   docker compose -p p3-gateway --profile app up -d   # + gateway and chaos proxy containers
 name: p3-gateway
@@ -60,7 +60,7 @@ services:
     # Versioned Redis keyspace migrations (one-shot); the gateway's /readyz stays 503 until they ran.
     profiles: ["app"]
     build: .
-    image: self-healing-llm-gateway:local
+    image: llmfailover:local
     command: ["python", "-m", "gateway.migrate"]
     environment:
       ENV: dev
@@ -72,7 +72,7 @@ services:
   gateway:
     profiles: ["app"]
     build: .
-    image: self-healing-llm-gateway:local
+    image: llmfailover:local
     env_file:
       - path: .env
         required: true
@@ -96,7 +96,7 @@ services:
 
   chaos:
     profiles: ["app"]
-    image: self-healing-llm-gateway:local
+    image: llmfailover:local
     command: ["python", "-m", "gateway.chaos"]
     env_file:
       - path: .env

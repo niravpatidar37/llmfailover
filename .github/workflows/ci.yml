@@ -90,11 +90,11 @@ jobs:
         with:
           persist-credentials: false
       - name: build image
-        run: docker build -t self-healing-llm-gateway:ci .
+        run: docker build -t llmfailover:ci .
       - name: image refuses to start with chaos enabled in prod (image default ENV=prod)
         run: |
           set +e
-          out=$(docker run --rm -e CHAOS_ENABLED=1 -e GROQ_API_KEY=x self-healing-llm-gateway:ci 2>&1)
+          out=$(docker run --rm -e CHAOS_ENABLED=1 -e GROQ_API_KEY=x llmfailover:ci 2>&1)
           code=$?
           set -e
           echo "$out" | tail -3
@@ -103,7 +103,7 @@ jobs:
           set +e
           tok="$(openssl rand -hex 16)"
           out=$(docker run --rm -e CHAOS_ENABLED=1 -e CHAOS_ADMIN_TOKEN="$tok" \
-            self-healing-llm-gateway:ci python -m gateway.chaos 2>&1)
+            llmfailover:ci python -m gateway.chaos 2>&1)
           code=$?
           set -e
           test "$code" -ne 0
@@ -113,7 +113,7 @@ jobs:
           docker network create gwci
           docker run -d --name redis --network gwci redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
           docker run -d --name gw --network gwci -e ENV=dev -e GATEWAY_CONFIG=/app/config/gateway.yaml \
-            -e REDIS_URL=redis://redis:6379/0 -e LLM_SPEND_LEDGER=/tmp/ledger.jsonl self-healing-llm-gateway:ci
+            -e REDIS_URL=redis://redis:6379/0 -e LLM_SPEND_LEDGER=/tmp/ledger.jsonl llmfailover:ci
           probe() { docker exec gw python -c "import sys,urllib.request,urllib.error
           try: print(urllib.request.urlopen('http://127.0.0.1:8103$1', timeout=3).status)
           except urllib.error.HTTPError as e: print(e.code)"; }
@@ -125,7 +125,7 @@ jobs:
           test "$(probe /healthz)" = "200"
           test "$(probe /readyz)" = "503"
           docker run --rm --network gwci -e ENV=dev -e REDIS_URL=redis://redis:6379/0 \
-            self-healing-llm-gateway:ci python -m gateway.migrate
+            llmfailover:ci python -m gateway.migrate
           test "$(probe /readyz)" = "200"
           docker logs gw 2>&1 | tail -5
       - name: trivy image scan (HIGH/CRITICAL, fixed)
@@ -133,7 +133,7 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
           aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
           image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
-          self-healing-llm-gateway:ci
+          llmfailover:ci
 
   terraform:
     runs-on: ubuntu-24.04
