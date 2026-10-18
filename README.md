@@ -363,21 +363,6 @@ assets/brand/          logo, icons, favicon, social preview + build_brand.py
 assets/demo/           demo.gif, demo.cast, demo.py (scenario), record.py (cast recorder), frame.py
 ```
 
-## Part of a portfolio
-
-Five LLM-engineering projects built to the same bar (real runs, committed raw results, a shared hard spend cap,
-CI with security scans, deploy-ready Terraform):
-
-| Repo | What it is |
-|---|---|
-| [hopcite](https://github.com/niravpatidar37/hopcite) | Graph RAG with cited multi-hop answers |
-| [tracedresearch](https://github.com/niravpatidar37/tracedresearch) | LangGraph multi-agent research assistant with cited reports and per-step traces |
-| **llmfailover** | this repo: the reliability layer between apps and model providers |
-| [kappajudge](https://github.com/niravpatidar37/kappajudge) | LLM-as-a-judge calibrated against human ratings (weighted kappa, bias checks) |
-| [distillroi](https://github.com/niravpatidar37/distillroi) | Distils a large teacher into a QLoRA student served by vLLM, with a router that escalates hard queries |
-
-They share the spend-ledger design and the Groq + Ollama setup; none of them routes through this gateway today.
-
 ## License
 
 MIT, see [LICENSE](LICENSE). Brand assets: [assets/brand/README.md](assets/brand/README.md).
