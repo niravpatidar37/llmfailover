@@ -228,6 +228,9 @@ def test_local_runtimes_do_not_count_as_external_failover_capacity(clean_env: py
     cfg = load_config(REPO_ROOT / "config" / "gateway.yaml")
     assert set(cfg.enabled_providers()) >= {"ollama", "ollama_cpu"}
     assert cfg.external_providers() == []
+    # also when the CPU runtime is reached by its compose service name, as in the CI smoke stack
+    clean_env.setenv("OLLAMA_CPU_URL", "http://ollama-cpu:11434")
+    assert cfg.external_providers() == []
     warnings = check_runtime_safety(cfg, Settings())
     assert any("no independent failover target" in w for w in warnings)
 
@@ -389,3 +392,16 @@ async def test_hedge_delay_does_not_slow_the_fast_path(
     rr = await r.route(cfg.classes["classify"], MSG, 8, None)
     assert rr.completion.provider == "a" and not rr.hedged
     await asyncio.sleep(0)
+
+
+def test_prod_refuses_a_provider_on_a_single_label_service_host(clean_env: pytest.MonkeyPatch) -> None:
+    """A bare service name (docker/k8s DNS) is a private-network peer, not an external provider."""
+    clean_env.setenv("ENV", "prod")
+    clean_env.setenv("GROQ_API_KEY", "test-not-a-real-key")
+    cfg = load_config(PROD_CONFIG)
+    cfg.providers["groq"].api_base_default = "http://ollama-cpu:11434"
+    settings = Settings(
+        env="prod", redis_url="rediss://10.0.0.3:6378/0", admin_token="p" * 40, spend_backend="redis"
+    )
+    with pytest.raises(UnsafeConfiguration, match="local/private-network providers"):
+        check_runtime_safety(cfg, settings)

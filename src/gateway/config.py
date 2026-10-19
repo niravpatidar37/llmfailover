@@ -51,6 +51,9 @@ class ProviderConfig(BaseModel):
     # Optional env var that overrides ``litellm_model`` (e.g. ANTHROPIC_MODEL), so a verified model id can be
     # set at deploy time without a code change. Placeholder ids are refused in staging/prod.
     litellm_model_env: str | None = None
+    # Independent failure domain? None = derive from the URL (loopback/private/single-label host = not
+    # external). Set false for runtimes that share the gateway host even when reached by a service name.
+    external: bool | None = None
     api_base_env: str | None = None
     api_base_default: str | None = None
     api_key_env: str | None = None
@@ -85,6 +88,8 @@ class ProviderConfig(BaseModel):
 
     def is_external(self) -> bool:
         """An independent, network-reachable provider (not loopback/private/host-local)."""
+        if self.external is not None:
+            return self.external
         return not _is_local_host(self.direct_base())
 
     def api_base(self) -> str | None:
@@ -286,8 +291,10 @@ def _is_local_host(url: str | None) -> bool:
     if not url:
         return False
     host = (urlparse(url).hostname or "").lower()
-    if host in ("localhost", "host.docker.internal") or host.endswith(".local"):
+    if host in ("localhost", "host.docker.internal") or host.endswith((".local", ".internal")):
         return True
+    if host and "." not in host and ":" not in host:
+        return True  # single-label name (docker/k8s service, e.g. "ollama-cpu"): a private network peer
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:

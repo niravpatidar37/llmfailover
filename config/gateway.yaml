@@ -19,6 +19,7 @@ providers:
     timeout_s: 20
     latency_budget_ms: 6000
     extra: { keep_alive: "30m" }
+    external: false   # same laptop as the gateway: not an independent failure domain
   ollama_cpu:
     # A second, independent runtime: Ollama in a Docker container on CPU with a 0.5B model.
     # Distinct failure domain from the host GPU Ollama (different process, VM and hardware).
@@ -31,6 +32,7 @@ providers:
     timeout_s: 20
     latency_budget_ms: 6000
     extra: { keep_alive: "30m" }
+    external: false   # a container on the same host (README "Read the failure domains")
   groq:
     litellm_model: "groq/openai/gpt-oss-20b"
     api_key_env: GROQ_API_KEY
