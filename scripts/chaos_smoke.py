@@ -1,4 +1,5 @@
-"""Smoke test against a running gateway: one request per class, a duplicate, and chaos error mapping."""
+"""Dev-only chaos walkthrough against the local stack: one request per class, a duplicate, and an injected
+Ollama outage through the chaos proxy. The end-to-end smoke suite is ``scripts/smoke.py``."""
 
 from __future__ import annotations
 
