@@ -130,5 +130,5 @@ async def main() -> tuple[str, dict[str, Any]]:
 
 if __name__ == "__main__":
     out, res = asyncio.run(main())
-    Path(out).write_text(json.dumps(res, indent=2) + "\n", encoding="utf-8")
+    Path(out).write_text(json.dumps(res, indent=2) + "\n", encoding="utf-8", newline="\n")
     print("wrote", out)

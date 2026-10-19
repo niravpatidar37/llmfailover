@@ -185,7 +185,7 @@ jobs:
           python3 scripts/init_env.py
           mkdir -p "$LLM_SPEND_DIR" && chmod 777 "$LLM_SPEND_DIR"
           $COMPOSE up -d --no-build gateway prometheus grafana
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8103/readyz || true)
             [ "$code" = "200" ] && break
             sleep 2
@@ -200,7 +200,7 @@ jobs:
             --allow-disruptive --require-functional --wait-ready 60 --json-out smoke-summary.json
       - name: Prometheus scraped the breaker gauges from the gateway container
         run: |
-          for i in $(seq 1 20); do
+          for _ in $(seq 1 20); do
             n=$(curl -s 'http://127.0.0.1:19090/api/v1/query?query=gateway_circuit_state' \
               | python3 -c "import json,sys; print(len(json.load(sys.stdin)['data']['result']))")
             [ "$n" -ge 1 ] && { echo "prometheus has $n gateway_circuit_state series"; exit 0; }
