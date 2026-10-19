@@ -53,7 +53,7 @@ class LiteLLMCaller:
         temperature: float | None,
     ) -> Completion:
         kwargs: dict[str, Any] = {
-            "model": provider.litellm_model,
+            "model": provider.model(),
             "messages": messages,
             "max_tokens": max(max_tokens, provider.min_max_tokens),
             "timeout": provider.timeout_s,
@@ -79,7 +79,7 @@ class LiteLLMCaller:
         usage = getattr(resp, "usage", None)
         return Completion(
             provider=provider.name,
-            model=str(getattr(resp, "model", provider.litellm_model)),
+            model=str(getattr(resp, "model", provider.model())),
             content=str(choice.message.content or ""),
             finish_reason=str(choice.finish_reason or "stop"),
             input_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),

@@ -37,9 +37,27 @@ Groq `openai/gpt-oss-20b`. It plays at real speed, 35.6 s, except that agg caps 
 its answers through the gateway took longer than the 2.5 s hedge delay plus Groq's ~0.4 s, so
 traffic during the outage was served by Groq, the independent external provider. Single calls sent straight to
 the container, and through the chaos proxy, right after the session took 0.1-0.6 s (one cold call took
-13.7 s), so the slowdown is somewhere on the gateway → LiteLLM →
-chaos proxy → container path under concurrent load. It was not investigated further. The
-committed chaos runs in `results/` show the other case, where `ollama_cpu` absorbs the traffic.
+13.7 s), so the slowdown was somewhere on the gateway → LiteLLM → chaos proxy → container path under load.
+
+**Found afterwards (2026-10-19, `scripts/hedge_probe.py`):** the chaos proxy did not pass the gateway's
+cancellation on. When the router cancels a hedge loser it closes its connection to the proxy, but the proxy
+kept waiting on the container, so Ollama kept generating the abandoned answer and the next call queued
+behind it. That call was then slower than the hedge delay, lost, was cancelled, and left more abandoned work:
+a self-reinforcing loop on a CPU runtime. Measured with the gateway's own provider code, 9 calls per cell,
+each sent right after a cancelled 256-token call:
+
+| Path | p50 | p95 | calls over 2.5 s |
+|---|---|---|---|
+| direct to the container | 251 ms | 899 ms | 0 of 9 |
+| through the chaos proxy, **before** the fix | 1663 ms | 7055 ms | 4 of 9 |
+| through the chaos proxy, **after** the fix | 266 ms | 436 ms | 0 of 9 |
+
+Raw data: `results/ollama_cpu_hedge_probe_before_fix.json`, `results/ollama_cpu_hedge_probe_after_fix.json`.
+The proxy now cancels its upstream call when the gateway disconnects (`chaos_upstream_cancelled_total`;
+`tests/test_components.py::test_chaos_proxy_cancels_upstream_when_the_gateway_disconnects`). This is a
+dev-tool artefact: the chaos proxy never runs in prod, and direct calls were unaffected. The demo itself was
+not re-recorded. Three concurrent calls on the CPU runtime still reach ~2.3 s at p95 on both paths, so a
+fixed 2.5 s hedge delay was borderline for it anyway; `classify` now hedges after the primary's p95.
 
 ## Re-record
 

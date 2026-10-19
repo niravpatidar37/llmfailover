@@ -7,6 +7,7 @@ import contextlib
 import hmac
 import json
 import logging
+import os
 import re
 import sys
 from collections.abc import AsyncIterator
@@ -20,7 +21,16 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from redis.asyncio import Redis
 
 from .breaker import CircuitBreakers
-from .config import GatewayConfig, Settings, check_runtime_safety, get_config, load_secrets
+from .config import (
+    GatewayConfig,
+    Settings,
+    chaos_requested,
+    check_runtime_safety,
+    failover_capacity_warning,
+    fake_llm_requested,
+    get_config,
+    load_secrets,
+)
 from .health import HealthTracker
 from .logging_setup import JsonFormatter
 from .metrics import Metrics
@@ -37,6 +47,17 @@ from .store import IdempotencyStore, KillSwitch, TenantStore
 TENANT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 FEATURE_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
+
+# Sent on every response (JSON API; nothing is ever rendered as HTML). HSTS only where TLS terminates.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "Cache-Control": "no-store",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+HSTS = "max-age=31536000; includeSubDomains"
 
 
 class Message(BaseModel):
@@ -117,9 +138,16 @@ def create_app(
                 settings.ledger_path, settings.project, settings.project_cap_usd, settings.global_cap_usd
             )
     kill = KillSwitch(redis, settings.kill_switch)
-    router = Router(
-        cfg, breakers, health, metrics, ledger, caller or LiteLLMCaller(), kill_switch=kill.engaged
-    )
+    fake_mode = caller is None and fake_llm_requested()
+    if caller is None:
+        if fake_mode:
+            from .fake_llm import FakeLLMCaller  # refuses to construct in staging/prod (second guard)
+
+            caller = FakeLLMCaller()
+            log.warning(json.dumps({"event": "fake_llm_mode", "detail": "FAKE_LLM=1: no real model calls"}))
+        else:
+            caller = LiteLLMCaller()
+    router = Router(cfg, breakers, health, metrics, ledger, caller, kill_switch=kill.engaged)
     service = GatewayService(cfg, redis, router, metrics, kill)
     tenants = TenantStore(redis)
     configure_logging(settings.request_log_path)
@@ -135,7 +163,20 @@ def create_app(
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(stop.wait(), timeout=1.0)
 
+    async def failover_capacity() -> dict[str, Any]:
+        """External (host-independent) providers, and which of them are not behind an open breaker."""
+        external = cfg.external_providers()
+        healthy = [p for p in external if await breakers.state(p) != "open"]
+        metrics.external_providers_enabled.set(len(external))
+        metrics.external_providers_healthy.set(len(healthy))
+        return {
+            "external_enabled": external,
+            "external_healthy": healthy,
+            "warning": failover_capacity_warning(healthy),
+        }
+
     async def refresh_gauges() -> None:
+        await failover_capacity()
         for p in cfg.enabled_providers():
             await breakers.state(p)  # also drives open -> half_open when the cooldown elapses
             st = await health.stats(p)
@@ -168,6 +209,10 @@ def create_app(
             if run_worker:
                 tasks.append(asyncio.create_task(service.run_worker(stop)))
         app.state.draining = False
+        with contextlib.suppress(Exception):  # Redis may still be coming up; /readyz reports it then
+            cap = await failover_capacity()
+            if cap["warning"]:
+                log.warning(json.dumps({"event": "failover_capacity", "detail": cap["warning"]}))
         yield
         # Graceful shutdown (SIGTERM from Cloud Run): fail readiness, stop claiming jobs, drain in-flight.
         app.state.draining = True
@@ -201,6 +246,25 @@ def create_app(
     app.state.kill_switch = kill
     app.state.settings = settings
     app.state.draining = False
+    app.state.fake_llm = fake_mode
+
+    deployed = settings.env in ("staging", "prod")
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next: Any) -> Response:
+        response: Response = await call_next(request)
+        for k, v in SECURITY_HEADERS.items():
+            response.headers.setdefault(k, v)
+        if deployed:
+            response.headers.setdefault("Strict-Transport-Security", HSTS)
+        return response
+
+    @app.exception_handler(Exception)
+    async def unhandled(request: Request, exc: Exception) -> Response:
+        # Never leak a stack trace or exception text to clients; the trace goes to the server log only.
+        log.error(json.dumps({"event": "unhandled_exception", "type": type(exc).__name__}), exc_info=exc)
+        # This handler runs outside the header middleware, so it sets the security headers itself.
+        return _err(500, "internal error", "server_error", "internal_error", dict(SECURITY_HEADERS))
 
     def is_admin(request: Request) -> bool:
         tok = request.headers.get("x-admin-token", "")
@@ -341,6 +405,15 @@ def create_app(
             ok = False
         body["providers_enabled"] = cfg.enabled_providers()
         ok = ok and bool(body["providers_enabled"])
+        body["fake_llm"] = fake_mode
+        proxy_set = bool(os.environ.get("CHAOS_PROXY_URL", "").strip())
+        body["chaos_routing"] = chaos_requested() and proxy_set and settings.env != "prod"
+        if body.get("redis"):
+            try:
+                # WARN only: one healthy external provider still serves traffic, it just has no failover.
+                body["failover"] = await failover_capacity()
+            except Exception as exc:
+                body["failover"] = {"error": type(exc).__name__}
         body["status"] = "ready" if ok else "not_ready"
         return JSONResponse(body, status_code=200 if ok else 503)
 
@@ -427,8 +500,6 @@ def create_app(
 
 
 def main() -> None:  # pragma: no cover - process entry point
-    import os
-
     import uvicorn
 
     from .logging_setup import configure_logging as configure_json_logging

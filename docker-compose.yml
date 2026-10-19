@@ -1,11 +1,13 @@
 # Local stack for llmfailover (the self-healing LLM gateway). Every port is bound to 127.0.0.1 only.
 #   docker compose -p p3-gateway up -d                 # redis, prometheus, grafana, ollama-cpu
 #   docker compose -p p3-gateway --profile app up -d   # + gateway and chaos proxy containers
+# CI smoke stack (fake LLM, no model runtimes): add -f deploy/compose.smoke.yml (see .github/workflows/ci.yml).
+# Third-party images are pinned by digest (tag kept for readability; Dependabot bumps both).
 name: p3-gateway
 
 services:
   redis:
-    image: redis:7.4.11-alpine
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     ports: ["127.0.0.1:16380:6379"]
     volumes: ["redis-data:/data"]
@@ -18,7 +20,7 @@ services:
 
   ollama-cpu:
     # Second, independent model runtime (CPU, qwen2.5:0.5b): a separate failure domain from host GPU Ollama.
-    image: ollama/ollama:0.40.5
+    image: ollama/ollama:0.40.5@sha256:5d3a2f25f9825628daba94dc0b1d421c7d57d6c03ae5faa9ba050e058bab8241
     ports: ["127.0.0.1:11435:11434"]
     environment:
       OLLAMA_NUM_PARALLEL: "2"
@@ -27,7 +29,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v3.13.4
+    image: prom/prometheus:v3.13.4@sha256:87861b8cf91579109319ebc300f3f1060e6da9c05d6ae8ad15a20c879e84e32e
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=7d
@@ -39,7 +41,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
     ports: ["127.0.0.1:13001:3000"]
     environment:
       GF_SECURITY_ADMIN_USER: admin
@@ -104,6 +106,7 @@ services:
     environment:
       ENV: dev
       CHAOS_ENABLED: "1"
+      CHAOS_HOST: 0.0.0.0 # inside the container; the published port stays on 127.0.0.1
       OLLAMA_URL: http://host.docker.internal:11434
       OLLAMA_CPU_URL: http://ollama-cpu:11434
     extra_hosts: ["host.docker.internal:host-gateway"]

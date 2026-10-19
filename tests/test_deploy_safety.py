@@ -50,7 +50,14 @@ def prod_settings(**kw: Any) -> Settings:
 
 @pytest.fixture
 def prod_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
-    for k in ("CHAOS_ENABLED", "CHAOS_PROXY_URL", "HF_ENABLED", "ANTHROPIC_API_KEY"):
+    for k in (
+        "CHAOS_ENABLED",
+        "CHAOS_PROXY_URL",
+        "HF_ENABLED",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
+        "FAKE_LLM",
+    ):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv("ENV", "prod")
     monkeypatch.setenv("GROQ_API_KEY", "test-not-a-real-key")
@@ -149,8 +156,14 @@ def test_prod_with_only_groq_keyed_has_one_provider_and_warns(prod_env: pytest.M
     assert cfg.enabled_providers() == ["groq"]
     warnings = check_runtime_safety(cfg, prod_settings())
     assert any("only one provider" in w for w in warnings)
+    assert any("fewer than 2" in w for w in warnings)  # startup failover-capacity WARN
     prod_env.setenv("ANTHROPIC_API_KEY", "test-not-a-real-key")
     assert cfg.enabled_providers() == ["groq", "anthropic"]
+    # A keyed provider whose model id is still the placeholder is refused, not silently enabled.
+    with pytest.raises(UnsafeConfiguration, match="placeholder model id"):
+        check_runtime_safety(cfg, prod_settings())
+    prod_env.setenv("ANTHROPIC_MODEL", "anthropic/model-id-verified-via-v1-models")
+    assert cfg.providers["anthropic"].model() == "anthropic/model-id-verified-via-v1-models"
     assert check_runtime_safety(cfg, prod_settings()) == []
 
 

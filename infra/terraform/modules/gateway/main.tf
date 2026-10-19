@@ -22,6 +22,9 @@ locals {
     admin_token       = "${local.prefix}-admin-token"
     tenant_keys       = "${local.prefix}-tenant-keys"
     redis_auth        = "${local.prefix}-redis-auth"
+    # Tenant key the CD smoke test uses (scripts/smoke.py). Readable by the deploy SA only; never injected
+    # into a runtime. Its SHA-256 must be in the tenant-keys spec (RUNBOOK section 2b).
+    smoke_api_key = "${local.prefix}-smoke-api-key"
   }
 
   provider_secret_env = merge(
@@ -54,6 +57,7 @@ locals {
       LLM_KILL_SWITCH       = var.kill_switch ? "1" : "0"
     },
     var.enable_hf ? { HF_ENABLED = "1" } : {},
+    var.enable_anthropic ? { ANTHROPIC_MODEL = var.anthropic_model } : {},
   )
 }
 

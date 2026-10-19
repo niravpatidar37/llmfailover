@@ -11,3 +11,7 @@ redis_tier            = "BASIC" # no replica/persistence: a restart loses queue,
 public_invoker        = false   # smoke tests use an identity token
 project_spend_cap_usd = 5
 deletion_protection   = false
+
+# Monitoring (modules/gateway/monitoring.tf): on-call channel and per-tenant daily cost alert.
+alert_email             = "CHANGE-ME-oncall@example.com"
+tenant_daily_budget_usd = 0.25

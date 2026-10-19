@@ -134,6 +134,92 @@ jobs:
           aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
           image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
           llmfailover:ci
+      - name: SBOM (CycloneDX) of the image
+        run: |
+          mkdir -p "$RUNNER_TEMP/sbom" && chmod 777 "$RUNNER_TEMP/sbom"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$RUNNER_TEMP/sbom:/out" \
+            aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa \
+            image --format cyclonedx --output /out/llmfailover-sbom.cdx.json --no-progress llmfailover:ci
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['bomFormat']=='CycloneDX'; print(d['specVersion'], len(d.get('components', [])), 'components')" \
+            "$RUNNER_TEMP/sbom/llmfailover-sbom.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-cyclonedx
+          path: ${{ runner.temp }}/sbom/llmfailover-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+
+  smoke:
+    # Full compose stack (redis, migrate, gateway, prometheus, grafana) with the deterministic fake LLM,
+    # then the same scripts/smoke.py the deploy workflow runs after staging and the prod canary. No secrets:
+    # scripts/init_env.py generates throwaway admin/Grafana tokens for this run only.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      COMPOSE: docker compose -p p3-smoke -f docker-compose.yml -f deploy/compose.smoke.yml --profile app
+      LLM_SPEND_DIR: /tmp/llm-spend # local ledger mount (the fake providers are free; nothing is spent)
+      PORTFOLIO_ENV_FILE: /nonexistent/portfolio.env # no provider secrets in CI
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: build image
+        run: docker build -t llmfailover:local .
+      - name: fake LLM mode and chaos are refused in prod (image default ENV=prod) and staging
+        run: |
+          set +e
+          out=$(docker run --rm -e FAKE_LLM=1 -e GROQ_API_KEY=x llmfailover:local 2>&1); code=$?
+          set -e
+          echo "$out" | tail -2
+          test "$code" -ne 0 && echo "$out" | grep -q "FAKE_LLM=1 is refused when ENV=prod"
+          set +e
+          out=$(docker run --rm -e ENV=staging -e FAKE_LLM=1 -e GROQ_API_KEY=x llmfailover:local 2>&1); code=$?
+          set -e
+          test "$code" -ne 0 && echo "$out" | grep -q "FAKE_LLM=1 is refused when ENV=staging"
+          set +e
+          out=$(docker run --rm -e CHAOS_ENABLED=1 -e GROQ_API_KEY=x llmfailover:local 2>&1); code=$?
+          set -e
+          test "$code" -ne 0 && echo "$out" | grep -q "CHAOS_ENABLED=1 is refused when ENV=prod"
+      - name: bring up the compose stack (fake LLM)
+        run: |
+          python3 scripts/init_env.py
+          mkdir -p "$LLM_SPEND_DIR" && chmod 777 "$LLM_SPEND_DIR"
+          $COMPOSE up -d --no-build gateway prometheus grafana
+          for _ in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8103/readyz || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          $COMPOSE ps
+      - name: smoke suite (scripts/smoke.py)
+        run: |
+          SMOKE_ADMIN_TOKEN="$(grep '^GATEWAY_ADMIN_TOKEN=' .env | cut -d= -f2-)"
+          echo "::add-mask::$SMOKE_ADMIN_TOKEN"
+          export SMOKE_ADMIN_TOKEN
+          python3 scripts/smoke.py --base-url http://127.0.0.1:8103 --expect-env dev \
+            --allow-disruptive --require-functional --wait-ready 60 --json-out smoke-summary.json
+      - name: Prometheus scraped the breaker gauges from the gateway container
+        run: |
+          for _ in $(seq 1 20); do
+            n=$(curl -s 'http://127.0.0.1:19090/api/v1/query?query=gateway_circuit_state' \
+              | python3 -c "import json,sys; print(len(json.load(sys.stdin)['data']['result']))")
+            [ "$n" -ge 1 ] && { echo "prometheus has $n gateway_circuit_state series"; exit 0; }
+            sleep 3
+          done
+          echo "::error::prometheus never scraped gateway_circuit_state"; exit 1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ always() }}
+        with:
+          name: smoke-summary
+          path: smoke-summary.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: compose logs (on failure)
+        if: ${{ failure() }}
+        run: $COMPOSE logs --no-color --tail 300
+      - name: tear down
+        if: ${{ always() }}
+        run: $COMPOSE down -v --remove-orphans
 
   terraform:
     runs-on: ubuntu-24.04

@@ -145,15 +145,91 @@ variable "kill_switch" {
 }
 
 variable "enable_anthropic" {
-  description = "Inject ANTHROPIC_API_KEY. Only set true AFTER the secret has a version and the model id in config/gateway.prod.yaml has been verified."
+  description = "Inject ANTHROPIC_API_KEY and ANTHROPIC_MODEL. Only set true AFTER the secret has a version and anthropic_model has been verified with GET /v1/models."
   type        = bool
   default     = false
+  validation {
+    condition     = !var.enable_anthropic || var.anthropic_model != ""
+    error_message = "enable_anthropic = true needs anthropic_model (a verified model id)."
+  }
 }
 
 variable "enable_hf" {
   description = "Inject HF_TOKEN and set HF_ENABLED=1. Only once the HF account is funded (it returned HTTP 402)."
   type        = bool
   default     = false
+}
+
+variable "anthropic_model" {
+  description = "Verified Anthropic model id for LiteLLM (\"anthropic/<id from GET https://api.anthropic.com/v1/models>\"). Required when enable_anthropic = true; the gateway refuses to start in staging/prod with the placeholder id."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.anthropic_model == "" || can(regex("^anthropic/[A-Za-z0-9._-]+$", var.anthropic_model))
+    error_message = "anthropic_model must look like anthropic/<model-id>."
+  }
+}
+
+# ---- monitoring (monitoring.tf) ------------------------------------------------------------------------
+variable "alert_email" {
+  description = "Email address of the on-call notification channel for every alert policy."
+  type        = string
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
+    error_message = "alert_email must be an email address."
+  }
+}
+
+variable "slo_availability_target" {
+  description = "Interactive availability SLO (docs/SLO.md); drives the multi-window error-budget burn alerts."
+  type        = number
+  default     = 0.99
+  validation {
+    condition     = var.slo_availability_target > 0.9 && var.slo_availability_target < 1
+    error_message = "slo_availability_target must be in (0.9, 1)."
+  }
+}
+
+variable "slo_valid_completion_target" {
+  description = "Quality SLO: share of completions that are schema-valid, non-empty and not truncated."
+  type        = number
+  default     = 0.99
+}
+
+variable "latency_p95_slo_s" {
+  description = "Interactive p95 latency SLO in seconds (docs/SLO.md)."
+  type        = number
+  default     = 3
+}
+
+variable "five_xx_ratio_threshold" {
+  description = "Alert when Cloud Run 5xx responses exceed this share of all requests for 5 min."
+  type        = number
+  default     = 0.05
+}
+
+variable "saturation_threshold" {
+  description = "Alert when container CPU/memory p99 utilisation, or instance count / max_instances, exceeds this."
+  type        = number
+  default     = 0.85
+}
+
+variable "failover_rate_threshold" {
+  description = "Alert when more than this share of requests fail over off their preferred provider for 10 min."
+  type        = number
+  default     = 0.2
+}
+
+variable "queue_depth_threshold" {
+  description = "Alert when the deferrable queue holds more jobs than this for 15 min."
+  type        = number
+  default     = 100
+}
+
+variable "tenant_daily_budget_usd" {
+  description = "Alert when one tenant's attributed LLM cost over the last 24 h exceeds this (list-price estimate)."
+  type        = number
+  default     = 1
 }
 
 variable "gmp_sidecar_image" {

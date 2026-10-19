@@ -19,3 +19,7 @@ deletion_protection   = true
 # secrets have versions (and, for Anthropic, the model id is verified via GET /v1/models).
 enable_anthropic = false
 enable_hf        = false
+
+# Monitoring (modules/gateway/monitoring.tf): on-call channel and per-tenant daily cost alert.
+alert_email             = "CHANGE-ME-oncall@example.com"
+tenant_daily_budget_usd = 1

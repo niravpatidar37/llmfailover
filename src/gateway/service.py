@@ -16,6 +16,7 @@ from redis.asyncio import Redis
 
 from .config import GatewayConfig, RequestClass
 from .metrics import Metrics
+from .quality import classify_completion
 from .redact import redact
 from .router import AllProvidersFailed, KillSwitchEngaged, Router, RouteResult
 from .store import CostStore, IdempotencyStore, IdemRecord, KillSwitch
@@ -99,6 +100,7 @@ class GatewayService:
                 "request_class": ctx.request_class,
                 "failovers": rr.failovers,
                 "hedged": rr.hedged,
+                "hedge_delay_ms": rr.hedge_delay_ms,
                 "cost_usd": round(rr.cost_usd, 10),
                 "attempts": [a.as_dict() for a in rr.attempts],
             },
@@ -132,6 +134,10 @@ class GatewayService:
         body = self._response(ctx, rr)
         await self.idem.commit(ctx.tenant, ctx.request_id, IdemRecord("done", fp, response=body))
         c = rr.completion
+        valid, reason = classify_completion(body)
+        self.metrics.completions.labels(
+            ctx.request_class, c.provider, "valid" if valid else "invalid", reason
+        ).inc()
         label = ctx.feature_label or ctx.feature
         await self.costs.add(
             self.redis, ctx.tenant, label, c.provider, rr.cost_usd, c.input_tokens, c.output_tokens

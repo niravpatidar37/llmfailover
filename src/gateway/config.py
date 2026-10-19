@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = REPO_ROOT / "config" / "gateway.yaml"
@@ -36,9 +36,24 @@ def chaos_requested() -> bool:
     return os.environ.get("CHAOS_ENABLED", "").strip() == "1"
 
 
+def fake_llm_requested() -> bool:
+    """Deterministic fake-LLM mode for CI smoke tests. Refused in staging/prod (``check_runtime_safety``)."""
+    return os.environ.get("FAKE_LLM", "").strip() == "1"
+
+
+DEPLOYED_ENVS = ("staging", "prod")
+PLACEHOLDER_MODEL_MARK = "VERIFY-MODEL-ID"
+
+
 class ProviderConfig(BaseModel):
     name: str = ""
     litellm_model: str
+    # Optional env var that overrides ``litellm_model`` (e.g. ANTHROPIC_MODEL), so a verified model id can be
+    # set at deploy time without a code change. Placeholder ids are refused in staging/prod.
+    litellm_model_env: str | None = None
+    # Independent failure domain? None = derive from the URL (loopback/private/single-label host = not
+    # external). Set false for runtimes that share the gateway host even when reached by a service name.
+    external: bool | None = None
     api_base_env: str | None = None
     api_base_default: str | None = None
     api_key_env: str | None = None
@@ -60,6 +75,22 @@ class ProviderConfig(BaseModel):
 
     def api_key(self) -> str | None:
         return os.environ.get(self.api_key_env) if self.api_key_env else None
+
+    def model(self) -> str:
+        if self.litellm_model_env:
+            override = os.environ.get(self.litellm_model_env, "").strip()
+            if override:
+                return override
+        return self.litellm_model
+
+    def has_placeholder_model(self) -> bool:
+        return PLACEHOLDER_MODEL_MARK in self.model()
+
+    def is_external(self) -> bool:
+        """An independent, network-reachable provider (not loopback/private/host-local)."""
+        if self.external is not None:
+            return self.external
+        return not _is_local_host(self.direct_base())
 
     def api_base(self) -> str | None:
         """Direct upstream, or the chaos proxy when CHAOS_ENABLED=1 (never in prod, whatever the env says)."""
@@ -83,7 +114,23 @@ class RequestClass(BaseModel):
     mode: Literal["interactive", "deferrable"]
     preference: list[str]
     max_tokens_cap: int = 128
-    hedge_after_ms: int | None = None
+    # Hedging. ``hedge_after_ms`` alone = a fixed delay. With ``hedge_adaptive``, the delay is the
+    # primary provider's recent latency quantile (sliding health window), clamped to
+    # [hedge_min_ms, hedge_max_ms]; ``hedge_after_ms`` is then the fallback while the window has fewer
+    # than ``breaker.min_samples`` successes.
+    hedge_after_ms: int | None = Field(default=None, gt=0)
+    hedge_adaptive: bool = False
+    hedge_quantile: Literal["p50", "p95", "p99"] = "p95"
+    hedge_min_ms: int = Field(default=200, gt=0)
+    hedge_max_ms: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _hedge_consistent(self) -> RequestClass:
+        if self.hedge_adaptive and self.hedge_after_ms is None:
+            raise ValueError("hedge_adaptive needs hedge_after_ms (the fallback delay)")
+        if self.hedge_max_ms is not None and self.hedge_max_ms < self.hedge_min_ms:
+            raise ValueError("hedge_max_ms must be >= hedge_min_ms")
+        return self
 
 
 class BreakerPolicy(BaseModel):
@@ -136,6 +183,24 @@ class GatewayConfig(BaseModel):
 
     def enabled_providers(self) -> list[str]:
         return [n for n, p in self.providers.items() if p.enabled()]
+
+    def external_providers(self) -> list[str]:
+        """Enabled providers that are independent of the gateway host (count toward failover capacity)."""
+        return [n for n in self.enabled_providers() if self.providers[n].is_external()]
+
+
+MIN_FAILOVER_PROVIDERS = 2
+
+
+def failover_capacity_warning(external_healthy: list[str]) -> str | None:
+    """WARN text when fewer than two healthy external providers exist (no independent failover target)."""
+    if len(external_healthy) >= MIN_FAILOVER_PROVIDERS:
+        return None
+    return (
+        f"only {len(external_healthy)} healthy external provider(s) {external_healthy}: fewer than "
+        f"{MIN_FAILOVER_PROVIDERS}, so there is no independent failover target "
+        "(enable a second provider: docs/RUNBOOK.md 'Enable a second provider')"
+    )
 
 
 def load_secrets() -> None:
@@ -226,8 +291,10 @@ def _is_local_host(url: str | None) -> bool:
     if not url:
         return False
     host = (urlparse(url).hostname or "").lower()
-    if host in ("localhost", "host.docker.internal") or host.endswith(".local"):
+    if host in ("localhost", "host.docker.internal") or host.endswith((".local", ".internal")):
         return True
+    if host and "." not in host and ":" not in host:
+        return True  # single-label name (docker/k8s service, e.g. "ollama-cpu"): a private network peer
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
@@ -239,6 +306,20 @@ def check_runtime_safety(cfg: GatewayConfig, settings: Settings) -> list[str]:
     """Fail closed on configurations that must never run in prod. Returns non-fatal warnings."""
     warnings: list[str] = []
     env = runtime_env()
+    if fake_llm_requested() and env in DEPLOYED_ENVS:
+        raise UnsafeConfiguration(f"FAKE_LLM=1 is refused when ENV={env} (fake LLM mode is local/CI only)")
+    ext = cfg.external_providers()
+    w = failover_capacity_warning(ext)
+    if w is not None:
+        warnings.append(f"startup: {w}")
+    if env not in DEPLOYED_ENVS:
+        return warnings
+    placeholder = [n for n in cfg.enabled_providers() if cfg.providers[n].has_placeholder_model()]
+    if placeholder:
+        raise UnsafeConfiguration(
+            f"enabled providers {placeholder} still use a placeholder model id; set the verified id "
+            "(e.g. ANTHROPIC_MODEL) when ENV is staging/prod"
+        )
     if env != "prod":
         return warnings
     if chaos_requested():

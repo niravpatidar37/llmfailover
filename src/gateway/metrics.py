@@ -101,3 +101,26 @@ class Metrics:
         self.health_samples = Gauge(
             "gateway_health_window_samples", "Samples in the sliding window", ["provider"], registry=r
         )
+        # Quality SLI: every fresh (non-replayed) completion is checked against the response schema.
+        self.completions = Counter(
+            "gateway_completions_total",
+            "Completions returned to clients, by schema validity (quality SLI)",
+            ["request_class", "provider", "validity", "reason"],
+            registry=r,
+        )
+        self.hedge_delay = Gauge(
+            "gateway_hedge_delay_seconds",
+            "Hedge delay used for the most recent hedge-eligible request",
+            ["request_class", "source"],
+            registry=r,
+        )
+        self.external_providers_enabled = Gauge(
+            "gateway_external_providers_enabled",
+            "Enabled providers that are independent of the gateway host",
+            registry=r,
+        )
+        self.external_providers_healthy = Gauge(
+            "gateway_external_providers_healthy",
+            "Enabled external providers whose breaker is not open (failover capacity; alert below 2)",
+            registry=r,
+        )

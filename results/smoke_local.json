@@ -1,0 +1,119 @@
+{
+  "base_url": "http://127.0.0.1:8103",
+  "env": "dev",
+  "started_at": "2026-10-19T06:29:23Z",
+  "duration_s": 3.44,
+  "total": 17,
+  "passed": 15,
+  "failed": 0,
+  "skipped": 1,
+  "warned": 1,
+  "ok": true,
+  "setup": "created throwaway tenant smoke-cfe15e06",
+  "allow_disruptive": true,
+  "request_class": "classify",
+  "checks": [
+    {
+      "name": "liveness",
+      "status": "PASS",
+      "detail": "200 ok",
+      "ms": 22.8
+    },
+    {
+      "name": "readiness",
+      "status": "PASS",
+      "detail": "env=dev redis=ok schema=2/2 providers=['ollama', 'ollama_cpu', 'groq'] kill_switch=False",
+      "ms": 15.2
+    },
+    {
+      "name": "failover_capacity",
+      "status": "WARN",
+      "detail": "only 1 healthy external provider(s) ['groq']: fewer than 2, so there is no independent failover target (enable a second provider: docs/RUNBOOK.md 'Enable a second provider')",
+      "ms": 0.0
+    },
+    {
+      "name": "deploy_guards",
+      "status": "PASS",
+      "detail": "dev: fake_llm=False chaos_routing=False (allowed outside staging/prod)",
+      "ms": 0.0
+    },
+    {
+      "name": "security_headers",
+      "status": "PASS",
+      "detail": "nosniff, DENY, no-store, CSP",
+      "ms": 29.6
+    },
+    {
+      "name": "no_stack_traces",
+      "status": "PASS",
+      "detail": "404 and malformed-JSON (400) bodies are JSON without traces",
+      "ms": 4.4
+    },
+    {
+      "name": "auth_rejected",
+      "status": "PASS",
+      "detail": "no key 401, bad key 401, admin without token 403",
+      "ms": 5.6
+    },
+    {
+      "name": "auth_accepted",
+      "status": "PASS",
+      "detail": "key accepted (request reached validation)",
+      "ms": 2.8
+    },
+    {
+      "name": "input_validation",
+      "status": "PASS",
+      "detail": "5 invalid inputs rejected with 400 and a typed error code",
+      "ms": 12.0
+    },
+    {
+      "name": "oversize_rejected",
+      "status": "PASS",
+      "detail": "70 KB body 413, 9000-char prompt 400 prompt_too_large",
+      "ms": 22.7
+    },
+    {
+      "name": "missing_metadata_rejected",
+      "status": "PASS",
+      "detail": "missing metadata 400; spoofed tenant 403",
+      "ms": 4.6
+    },
+    {
+      "name": "chat_completion",
+      "status": "PASS",
+      "detail": "200 in 1604 ms via ollama_cpu (failovers=0, hedged=True): 'Positive.'",
+      "ms": 1603.8
+    },
+    {
+      "name": "idempotent_replay",
+      "status": "PASS",
+      "detail": "replayed with X-Idempotent-Replay: true; reused id with a new body 422; commits=1",
+      "ms": 13.4
+    },
+    {
+      "name": "metrics_breaker_gauges",
+      "status": "PASS",
+      "detail": "gateway_circuit_state for 3 provider(s) [groq=closed, ollama=closed, ollama_cpu=closed]; quality + capacity gauges present",
+      "ms": 4.4
+    },
+    {
+      "name": "metrics_not_public",
+      "status": "SKIP",
+      "detail": "env=dev: /metrics is intentionally on the API port outside staging/prod",
+      "ms": 0.0
+    },
+    {
+      "name": "rate_limit",
+      "status": "PASS",
+      "detail": "statuses [200, 200, 429]; Retry-After: 58",
+      "ms": 1673.2
+    },
+    {
+      "name": "kill_switch",
+      "status": "PASS",
+      "detail": "engaged -> chat 503 kill_switch + Retry-After, /readyz shows it; released",
+      "ms": 24.8
+    }
+  ]
+}

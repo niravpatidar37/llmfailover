@@ -49,6 +49,7 @@ class RouteResult:
     failovers: int
     hedged: bool
     cost_usd: float
+    hedge_delay_ms: float | None = None
 
 
 class AllProvidersFailed(Exception):
@@ -203,6 +204,27 @@ class Router:
         ctx.failovers += 1
         self.metrics.failovers.labels(ctx.cls.name, frm, to, reason).inc()
 
+    async def hedge_delay_s(self, cls: RequestClass, provider: str) -> float | None:
+        """Delay before hedging a lone in-flight call to ``provider``; None if the class does not hedge.
+
+        Fixed: ``hedge_after_ms``. Adaptive: the provider's recent latency quantile from the shared health
+        window ("hedge after the p95", Dean & Barroso, The Tail at Scale, CACM 2013), clamped to
+        [hedge_min_ms, hedge_max_ms or hedge_after_ms]; it falls back to ``hedge_after_ms`` until the window
+        holds ``breaker.min_samples`` successes, so a cold or idle provider is not hedged aggressively.
+        """
+        if not cls.hedge_after_ms:
+            return None
+        delay_ms, source = float(cls.hedge_after_ms), "fixed"
+        if cls.hedge_adaptive:
+            source = "fallback"
+            st = await self.health.stats(provider)
+            q = {"p50": st.p50_ms, "p95": st.p95_ms, "p99": st.p99_ms}[cls.hedge_quantile]
+            if q is not None and st.successes >= self.cfg.breaker.min_samples:
+                hi = float(cls.hedge_max_ms or cls.hedge_after_ms)
+                delay_ms, source = min(hi, max(float(cls.hedge_min_ms), q)), "adaptive"
+        self.metrics.hedge_delay.labels(cls.name, source).set(delay_ms / 1000)
+        return delay_ms / 1000
+
     # ---- main entry -----------------------------------------------------------------------------
     async def route(
         self, cls: RequestClass, messages: list[dict[str, str]], max_tokens: int, temperature: float | None
@@ -214,6 +236,7 @@ class Router:
         running: dict[asyncio.Task[Completion], _Running] = {}
         hedge_used = False
         extra_cost = 0.0
+        delays: dict[str, float | None] = {}  # per-provider hedge delay, computed once per request
 
         def start(run: _Running) -> None:
             task = asyncio.create_task(self._call(run, messages, max_tokens, temperature))
@@ -235,7 +258,11 @@ class Router:
                     and ctx.idx < len(ctx.candidates)
                 ):
                     lone = next(iter(running.values()))
-                    timeout = max(0.0, cls.hedge_after_ms / 1000 - (time.perf_counter() - lone.started))
+                    if lone.provider not in delays:
+                        delays[lone.provider] = await self.hedge_delay_s(cls, lone.provider)
+                    d = delays[lone.provider]
+                    if d is not None:
+                        timeout = max(0.0, d - (time.perf_counter() - lone.started))
                 done, _ = await asyncio.wait(
                     running.keys(), timeout=timeout, return_when=asyncio.FIRST_COMPLETED
                 )
@@ -266,12 +293,14 @@ class Router:
                         running.pop(other_task, None)
                     if hedge_used and any(a.hedge for a in ctx.attempts):
                         self.metrics.hedges.labels("hedge_won" if run.hedge else "primary_won").inc()
+                    first_delay = next(iter(delays.values()), None)
                     return RouteResult(
                         comp,
                         ctx.attempts,
                         ctx.failovers,
                         hedge_used and any(a.hedge for a in ctx.attempts),
                         cost + extra_cost,
+                        round(first_delay * 1000, 1) if first_delay is not None else None,
                     )
                 if not running:
                     nxt = await self._next_admitted(ctx, messages, max_tokens)

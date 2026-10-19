@@ -1,9 +1,10 @@
 name: deploy
 
-# Build once -> push to Artifact Registry -> deploy the image DIGEST to staging (migrate job, no-traffic
-# canary revision, smoke /healthz + /readyz, promote) -> prod behind the `production` environment
-# (manual approval): migrate, canary revision, smoke, 10% traffic, smoke, 100%; automatic rollback to the
-# previous revision if any smoke test fails.
+# Build once -> push to Artifact Registry -> sign the digest (cosign keyless, GitHub OIDC) -> deploy the image
+# DIGEST to staging (verify signature, migrate job, no-traffic canary revision, scripts/smoke.py, promote,
+# smoke again) -> prod behind the `production` environment (manual approval): verify signature, migrate,
+# canary revision, smoke, 10% traffic, soak, smoke, 100%, smoke; automatic rollback to the previous revision
+# if any smoke run fails. scripts/smoke.py is the same suite CI runs against the compose stack.
 #
 # Every job is skipped until the repo variable GCP_PROJECT_ID is set (one-time bootstrap in docs/RUNBOOK.md),
 # so this workflow passes (all jobs skipped) while no cloud project is connected.
@@ -58,6 +59,11 @@ jobs:
           case "$digest" in sha256:*) ;; *) echo "no digest resolved"; exit 1 ;; esac
           echo "image=${repo}@${digest}" >> "$GITHUB_OUTPUT"
           echo "built ${repo}@${digest}"
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: sign the image digest (keyless; identity = this workflow on this ref)
+        env:
+          IMAGE: ${{ steps.push.outputs.image }}
+        run: cosign sign --yes "$IMAGE"
 
   deploy-staging:
     needs: build
@@ -87,6 +93,26 @@ jobs:
           id_token_audience: llm-gateway-staging-smoke
           id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: verify the image signature (built and signed by this repo's deploy workflow)
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          REPO: ${{ github.repository }}
+        run: |
+          cosign verify "$IMAGE" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "^https://github.com/${REPO}/\.github/workflows/deploy\.yml@refs/heads/main$" \
+            > /dev/null
+          echo "signature verified for $IMAGE"
+      - name: smoke tenant key from Secret Manager (masked)
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT_ID }}
+          SECRET: llm-gateway-staging-smoke-api-key
+        run: |
+          set -euo pipefail
+          key="$(gcloud secrets versions access latest --secret "$SECRET" --project "$PROJECT")"
+          echo "::add-mask::$key"
+          echo "SMOKE_API_KEY=$key" >> "$GITHUB_ENV"
       - name: migrate Redis keyspace (Cloud Run job, before any new code serves)
         run: |
           set -euo pipefail
@@ -104,18 +130,22 @@ jobs:
           url="$(gcloud run services describe "$SVC" --region "$REGION" --format='value(status.url)')"
           echo "canary_url=${url/https:\/\//https://canary---}" >> "$GITHUB_OUTPUT"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
-      - name: smoke canary (/healthz + /readyz)
+      - name: smoke canary revision (scripts/smoke.py, 0% traffic)
         env:
           SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
           URL: ${{ steps.canary.outputs.canary_url }}
-        run: bash scripts/smoke_deploy.sh "$URL"
+        run: >
+          python3 scripts/smoke.py --base-url "$URL" --expect-env staging --require-functional
+          --wait-ready 90 --json-out "$RUNNER_TEMP/smoke/staging-canary.json"
       - name: promote to 100%
         run: gcloud run services update-traffic "$SVC" --region "$REGION" --to-latest --quiet
       - name: smoke main URL
         env:
           SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
           URL: ${{ steps.canary.outputs.url }}
-        run: bash scripts/smoke_deploy.sh "$URL"
+        run: >
+          python3 scripts/smoke.py --base-url "$URL" --expect-env staging --require-functional
+          --wait-ready 60 --json-out "$RUNNER_TEMP/smoke/staging-main.json"
       - name: update worker pool
         run: gcloud run worker-pools deploy "$WP" --region "$REGION" --image "$IMAGE" --quiet
       - name: rollback to the previous revision
@@ -123,6 +153,12 @@ jobs:
         env:
           PREV: ${{ steps.canary.outputs.prev }}
         run: gcloud run services update-traffic "$SVC" --region "$REGION" --to-revisions "${PREV}=100" --quiet
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ always() }}
+        with:
+          name: smoke-staging
+          path: ${{ runner.temp }}/smoke/
+          if-no-files-found: ignore
 
   deploy-prod:
     needs: [build, deploy-staging]
@@ -155,6 +191,26 @@ jobs:
           id_token_audience: llm-gateway-prod-smoke
           id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: verify the image signature (built and signed by this repo's deploy workflow)
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          REPO: ${{ github.repository }}
+        run: |
+          cosign verify "$IMAGE" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "^https://github.com/${REPO}/\.github/workflows/deploy\.yml@refs/heads/main$" \
+            > /dev/null
+          echo "signature verified for $IMAGE"
+      - name: smoke tenant key from Secret Manager (masked)
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT_ID }}
+          SECRET: llm-gateway-prod-smoke-api-key
+        run: |
+          set -euo pipefail
+          key="$(gcloud secrets versions access latest --secret "$SECRET" --project "$PROJECT")"
+          echo "::add-mask::$key"
+          echo "SMOKE_API_KEY=$key" >> "$GITHUB_ENV"
       - name: promote the exact staging image (same digest) into the prod repository
         id: img
         run: |
@@ -193,11 +249,13 @@ jobs:
           url="$(gcloud run services describe "$SVC" --region "$REGION" --format='value(status.url)')"
           echo "canary_url=${url/https:\/\//https://canary---}" >> "$GITHUB_OUTPUT"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
-      - name: smoke canary revision (0% traffic)
+      - name: smoke canary revision (scripts/smoke.py, 0% traffic; non-disruptive)
         env:
           SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
           URL: ${{ steps.canary.outputs.canary_url }}
-        run: bash scripts/smoke_deploy.sh "$URL"
+        run: >
+          python3 scripts/smoke.py --base-url "$URL" --expect-env prod --require-functional
+          --wait-ready 90 --json-out "$RUNNER_TEMP/smoke/prod-canary-0pct.json"
       - name: shift canary traffic
         env:
           NEW: ${{ steps.canary.outputs.new }}
@@ -215,8 +273,10 @@ jobs:
         run: |
           set -euo pipefail
           sleep "$CANARY_SOAK_S"
-          bash scripts/smoke_deploy.sh "$CANARY_URL"
-          bash scripts/smoke_deploy.sh "$URL"
+          for u in "$CANARY_URL" "$URL"; do
+            python3 scripts/smoke.py --base-url "$u" --expect-env prod --require-functional \
+              --wait-ready 60 --json-out "$RUNNER_TEMP/smoke/prod-canary-$(date +%s%N).json"
+          done
       - name: promote to 100%
         env:
           NEW: ${{ steps.canary.outputs.new }}
@@ -225,7 +285,9 @@ jobs:
         env:
           SMOKE_ID_TOKEN: ${{ steps.auth.outputs.id_token }}
           URL: ${{ steps.canary.outputs.url }}
-        run: bash scripts/smoke_deploy.sh "$URL"
+        run: >
+          python3 scripts/smoke.py --base-url "$URL" --expect-env prod --require-functional
+          --wait-ready 60 --json-out "$RUNNER_TEMP/smoke/prod-100pct.json"
       - name: update worker pool
         env:
           IMAGE: ${{ steps.img.outputs.image }}
@@ -242,3 +304,9 @@ jobs:
             gcloud run worker-pools deploy "$WP" --region "$REGION" --image "$PREV_WORKER" --quiet
           fi
           echo "::error::rolled back ${SVC} to ${PREV}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ always() }}
+        with:
+          name: smoke-prod
+          path: ${{ runner.temp }}/smoke/
+          if-no-files-found: ignore

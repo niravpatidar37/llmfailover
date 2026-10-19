@@ -30,6 +30,9 @@ providers:
     extra: { reasoning_effort: "low" }
   anthropic:
     litellm_model: "anthropic/VERIFY-MODEL-ID-VIA-GET-v1-models"
+    # Set ANTHROPIC_MODEL (e.g. "anthropic/<id from GET /v1/models>") to override the placeholder; staging/prod
+    # refuse to start with a keyed provider that still has the placeholder id.
+    litellm_model_env: ANTHROPIC_MODEL
     api_key_env: ANTHROPIC_API_KEY
     enabled_env: ANTHROPIC_API_KEY
     paid: true
@@ -53,8 +56,13 @@ classes:
     mode: interactive
     preference: [groq, anthropic, hf]
     max_tokens_cap: 16
-    # Measured locally: a 2.5 s delay was too conservative (README, design decision 3); start nearer p95.
+    # Measured locally: a fixed 2.5 s delay was too conservative (README, design decision 3). Adaptive:
+    # hedge after the primary's recent p95, clamped to 250-2500 ms; 1500 ms until the window has samples.
     hedge_after_ms: 1500
+    hedge_adaptive: true
+    hedge_quantile: p95
+    hedge_min_ms: 250
+    hedge_max_ms: 2500
   generate:
     mode: interactive
     preference: [groq, anthropic, hf]
