@@ -89,6 +89,10 @@ python -c "import secrets; print(secrets.token_urlsafe(48), end='')" \
 gcloud redis instances get-auth-string "$P-redis" --region="$REGION" --format='value(authString)' \
   | tr -d '\n' | gcloud secrets versions add "$P-redis-auth" --data-file=-
 uv run python scripts/make_tenant_key.py acme --rpm 600 > tenant-keys.json   # key printed once on stderr
+# CD smoke tenant (scripts/smoke.py makes 1-2 tiny real calls per deploy step through it)
+uv run python scripts/make_tenant_key.py smoke --rpm 30 --spec tenant-keys.json --key-file smoke.key > spec.json
+mv spec.json tenant-keys.json
+gcloud secrets versions add "$P-smoke-api-key" --data-file=smoke.key && rm smoke.key
 gcloud secrets versions add "$P-tenant-keys" --data-file=tenant-keys.json && rm tenant-keys.json
 # optional, only when enabling them (enable_anthropic / enable_hf in tfvars):
 #   printf '%s' "$ANTHROPIC_API_KEY" | gcloud secrets versions add "$P-anthropic-api-key" --data-file=-
@@ -114,20 +118,25 @@ After this, set `GCP_PROJECT_ID` (section 1); every push to `main` deploys throu
 
 `deploy.yml` on push to `main` (or **Run workflow**):
 
-1. `build`: builds once, pushes `gateway:<sha>` to `llm-gateway-staging`, resolves the **digest**.
-2. `deploy-staging`: `gcloud run jobs update/execute` the migration job; `gcloud run deploy --no-traffic --tag canary`;
-   `scripts/smoke_deploy.sh` against the canary URL (`/healthz` 200 and `/readyz` "ready"); promote to 100%;
-   smoke again; update the worker pool. Any failure: traffic goes back to the previous revision.
-3. `deploy-prod` (environment `production`, waits for your approval): copies the same digest into
+1. `build`: builds once, pushes `gateway:<sha>` to `llm-gateway-staging`, resolves the **digest**, and signs it
+   with cosign (keyless: the certificate identity is this repo's `deploy.yml` on `main`).
+2. `deploy-staging`: `cosign verify` the digest; read the smoke tenant key from `$P-smoke-api-key`;
+   `gcloud run jobs update/execute` the migration job; `gcloud run deploy --no-traffic --tag canary`;
+   **`scripts/smoke.py --require-functional`** against the canary URL (section 8); promote to 100%; smoke
+   again; update the worker pool. Any failure: traffic goes back to the previous revision.
+3. `deploy-prod` (environment `production`, waits for your approval): `cosign verify`; copies the same digest into
    `llm-gateway-prod` and checks the digest is unchanged; migrates; no-traffic canary + smoke; 10% for 5 min +
-   smoke; 100% + smoke; worker pool. Any failure: automatic rollback of the service traffic and worker image.
+   smoke (canary and main URL); 100% + smoke; worker pool. Any failure: automatic rollback of the service
+   traffic and worker image. Smoke JSON summaries are uploaded as the `smoke-staging` / `smoke-prod` artifacts.
 
 Manual verification:
 
 ```bash
 URL=$(gcloud run services describe "$P-api" --region "$REGION" --format='value(status.url)')
-TOKEN=$(gcloud auth print-identity-token --audiences="$P-smoke")   # staging is IAM-protected
-SMOKE_ID_TOKEN=$TOKEN bash scripts/smoke_deploy.sh "$URL"
+export SMOKE_ID_TOKEN=$(gcloud auth print-identity-token --audiences="$P-smoke")   # staging is IAM-protected
+export SMOKE_API_KEY=$(gcloud secrets versions access latest --secret "$P-smoke-api-key") SMOKE_TENANT=smoke
+python3 scripts/smoke.py --base-url "$URL" --expect-env "$ENV" --require-functional --json-out smoke.json
+unset SMOKE_API_KEY SMOKE_ID_TOKEN
 gcloud run services describe "$P-api" --region "$REGION" --format='yaml(status.traffic)'
 gcloud run worker-pools describe "$P-worker" --region "$REGION"
 gcloud run jobs executions list --job "$P-migrate" --region "$REGION" --limit 3
@@ -222,6 +231,91 @@ at the provider, which stops spend immediately and does not depend on this syste
 | Queue depth keeps growing | worker pool down, kill switch engaged, or all providers open | `gcloud run worker-pools describe "$P-worker"`; check `GET /admin/kill-switch`; jobs dead-letter after `max_attempts`. |
 | Gateway refuses to start: `UnsafeConfiguration` | prod guard tripped (CHAOS_ENABLED, CHAOS_PROXY_URL, local provider URL, file spend ledger, plaintext Redis, short admin token) | this is the control working. Remove the offending env var; never set `CHAOS_ENABLED` in prod. |
 | Breaker flaps on p95 | latency budget too tight for the provider | adjust `latency_budget_ms` in `config/gateway.prod.yaml` (a code change, through CD). |
+| Alert "Fewer than 2 healthy external providers"; startup log `failover_capacity`; `/readyz` `failover.warning` | only one external provider is keyed (expected today: Groq only), or the second one's breaker is open | not an outage by itself: traffic is served, but the next provider incident is a full outage. Enable a second provider (section 11). |
+| Alert "Valid-completion ratio below SLO" | a provider returns empty or truncated answers (`gateway_completions_total{validity="invalid"}` by `provider`, `reason`) | `reason="truncated"`: the class `max_tokens_cap` is too small for a reasoning model (raise it or the provider's `min_max_tokens`); `reason="empty"`: provider-side problem, move it down the preference list. |
+| Alert "Tenant cost over daily budget" | one tenant's attributed spend > `tenant_daily_budget_usd` in 24 h | `GET /admin/costs`; lower that tenant's `rpm` in the tenant spec and `roll`. The project-wide hard cap still bounds total spend. |
+| `scripts/smoke.py` fails in CD | the new revision is broken (or the smoke tenant key is missing) | CD already rolled back. Download the `smoke-*` artifact: each check has a PASS/FAIL line and detail. A `--require-functional` FAIL with "skipped" means the `$P-smoke-api-key` secret has no version. |
 
 Spend counter key: `gw:spend:p3-gateway:committed:YYYYMM` (project name `p3-gateway`), reservations in
 `gw:spend:p3-gateway:res`, audit list `gw:spend:p3-gateway:audit`.
+
+## 8. Smoke tests (`scripts/smoke.py`)
+
+One stdlib-only script, used in three places: the CI `smoke` job (compose stack with the deterministic fake
+LLM), CD after the staging deploy and around the prod canary, and by hand (section 3). It prints one
+`PASS` / `FAIL` / `SKIP` / `WARN` line per check, writes a JSON summary with `--json-out`, and exits 1 on any
+`FAIL`. Credentials come only from env vars (`SMOKE_API_KEY` + `SMOKE_TENANT`, `SMOKE_ADMIN_TOKEN`,
+`SMOKE_ID_TOKEN`); none is ever printed.
+
+| Check | What it proves |
+|---|---|
+| `liveness`, `readiness` | `/healthz` 200; `/readyz` 200 with Redis reachable and the keyspace migrated |
+| `failover_capacity` | `/readyz` reports healthy external providers; **WARN** (not FAIL) when fewer than 2 |
+| `deploy_guards` | in staging/prod: `fake_llm=false` and `chaos_routing=false` |
+| `security_headers`, `no_stack_traces` | nosniff / DENY / no-store / CSP (+ HSTS on https); 404 and malformed JSON return JSON without traces |
+| `auth_rejected`, `auth_accepted` | no key 401, bad key 401, admin route without token 403; a valid key is accepted |
+| `input_validation`, `oversize_rejected`, `missing_metadata_rejected` | typed 400s for bad bodies, 413 for > 64 KB, 400 `prompt_too_large`, 400 `missing_metadata`, 403 spoofed tenant |
+| `chat_completion` | a real completion through the gateway, validated against an independent OpenAI-shape + gateway-metadata schema |
+| `idempotent_replay` | re-send returns `X-Idempotent-Replay: true` with the same body; reused id + new body 422; with admin: exactly 1 commit |
+| `metrics_breaker_gauges`, `metrics_not_public` | dev: `/metrics` exports `gateway_circuit_state` + quality/capacity series; staging/prod: `/metrics` is 404 on the public port |
+| `rate_limit` | a 2-rpm tenant gets 429 `tenant_rate_limited` with `Retry-After` (dev with admin, or `SMOKE_RL_API_KEY`) |
+| `kill_switch` | read-only: not engaged. `--allow-disruptive` (isolated stacks only; it is GLOBAL): engage, chat 503 `kill_switch` + `Retry-After`, release |
+
+Never pass `--allow-disruptive` against prod: the kill switch is shared by every instance through Redis.
+
+## 9. Alerts (Terraform: `infra/terraform/modules/gateway/monitoring.tf`)
+
+All policies notify the email channel from `alert_email` (tfvars). Thresholds are module variables.
+
+| Policy | Signal | Fires when | First action |
+|---|---|---|---|
+| `/healthz uptime check failing` (CRITICAL) | uptime check every 60 s (OIDC token when IAM-protected) | fails from 2+ regions for 5 min | section 3 verify, section 4 rollback |
+| `Error budget fast burn` (CRITICAL) | PromQL, interactive 5xx / non-4xx | 1 h **and** 5 m ratio > 14.4 x (1 - SLO) | on-call checklist below |
+| `Error budget slow burn` (ERROR) | same | 6 h **and** 30 m ratio > 6 x (1 - SLO) | ticket; find the degraded provider |
+| `5xx ratio above threshold` (ERROR) | `run.googleapis.com/request_count` 5xx / all | > 5% for 5 min | logs of the latest revision |
+| `Interactive p95 latency over SLO` (ERROR) | `gateway_client_request_seconds` histogram | p95 > 3 s for 10 min | provider p95, hedge outcomes |
+| `instance saturation` (WARNING) | Cloud Run CPU/memory utilisation p99, instance count | > 85% (or > 85% of `max_instances`) for 10 min | scale limits in tfvars |
+| `Provider circuit breaker open` (WARNING) | `gateway_circuit_state == 2` | 10 min | `/admin/providers`, `/admin/breaker/events` |
+| `Failover rate high` (WARNING) | `gateway_failovers_total` / requests | > 20% for 10 min | preferred provider is degraded |
+| `Deferrable queue depth high` (WARNING) | `gateway_queue_depth` | > 100 for 15 min | worker pool, kill switch |
+| `Tenant cost over daily budget` (WARNING) | `increase(gateway_cost_usd_total[1d])` by tenant | > `tenant_daily_budget_usd` | `/admin/costs`, tenant rpm |
+| `Fewer than 2 healthy external providers` (WARNING) | `gateway_external_providers_healthy` | < 2 for 15 min (fires today: Groq only) | section 11 |
+| `Valid-completion ratio below SLO` (WARNING) | `gateway_completions_total` | invalid > 1% over 1 h | incident table |
+
+## 10. On-call checklist
+
+1. **Acknowledge** the alert; note the policy name and start time.
+2. **Scope:** `curl -sS "$URL/readyz"` (redis, schema, kill switch, `failover`), then with the admin token
+   `GET /admin/providers` (breaker state + window stats per provider) and `GET /admin/breaker/events`.
+3. **Recent change?** `gcloud run revisions list --service "$P-api" --region "$REGION" --limit 3`. If the alert
+   started within ~30 min of a rollout, roll back first (section 4), investigate second.
+4. **Provider-side?** Breaker open on one provider with `rate_limit`/`server_error`: check the provider's status
+   page; with a single external provider there is no failover, so consider the kill switch only if requests are
+   failing *and* costing money (section 6).
+5. **Run the smoke suite** against the main URL (section 3). A green run plus a firing alert points at a
+   partial problem (one tenant, one class, one provider).
+6. **Spend:** `GET /admin/costs`; the monthly hard cap stops paid calls by itself (`skipped_budget`).
+7. **Resolve:** confirm the alert auto-closes (30 min), then write down cause, impact (minutes x requests) and
+   the error budget used.
+
+## 11. Enable a second provider (failover target)
+
+Prod ships with **one** external provider (Groq), so the gateway warns at startup, `/readyz` carries a
+`failover.warning`, and the "Fewer than 2 healthy external providers" alert fires. Nothing fakes a second one.
+To add a real one:
+
+* **Anthropic** (needs an Anthropic account and key):
+  ```bash
+  curl -sS https://api.anthropic.com/v1/models -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" | jq -r '.data[].id'
+  printf '%s' "$ANTHROPIC_API_KEY" | gcloud secrets versions add "$P-anthropic-api-key" --data-file=-
+  # tfvars: enable_anthropic = true, anthropic_model = "anthropic/<an id from the list above>"
+  terraform -chdir=infra/terraform/envs/$ENV apply -var "image=$IMG@sha256:CURRENT_DIGEST"
+  ```
+  Terraform injects `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`; the gateway refuses to start in staging/prod if
+  the model id is still the placeholder. Check the price estimate in `config/gateway.prod.yaml` against
+  <https://www.anthropic.com/pricing> before relying on the spend cap.
+* **Hugging Face router** (needs credits; this account returned HTTP 402):
+  `printf '%s' "$HF_TOKEN" | gcloud secrets versions add "$P-hf-token" --data-file=-`, set `enable_hf = true`,
+  apply. Terraform sets `HF_ENABLED=1`.
+
+Verify: `/readyz` shows two names in `failover.external_healthy` and no `warning`; the alert auto-closes.

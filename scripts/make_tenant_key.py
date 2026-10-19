@@ -7,6 +7,8 @@
 * stderr: the NEW plaintext key, shown once. Hand it to the tenant over a secure channel; it is not stored.
 * ``--spec`` merges into an existing spec, keeping the tenant's previous hashes so the old key keeps working
   during rotation. Drop old hashes with ``--revoke-others`` once the tenant has switched.
+* ``--key-file PATH`` writes the bare key to PATH (owner-only permissions) instead of stderr, e.g. for the
+  CD smoke tenant: ``gcloud secrets versions add <prefix>-smoke-api-key --data-file=PATH``, then delete it.
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ def main() -> None:
     ap.add_argument("--rpm", type=int, default=600)
     ap.add_argument("--spec", type=Path, help="existing spec JSON to merge into")
     ap.add_argument("--revoke-others", action="store_true", help="keep only the new key for this tenant")
+    ap.add_argument("--key-file", type=Path, help="write the bare new key here instead of stderr")
     args = ap.parse_args()
     if not TENANT_RE.match(args.tenant):
         sys.exit("tenant must match " + TENANT_RE.pattern)
@@ -38,7 +41,12 @@ def main() -> None:
     hashes = [] if args.revoke_others else list(entry.get("key_sha256", []))
     spec[args.tenant] = {"rpm": args.rpm, "key_sha256": [*hashes, digest]}
     print(json.dumps(spec, indent=2, sort_keys=True))
-    print(f"new key for {args.tenant} (shown once, not stored): {key}", file=sys.stderr)
+    if args.key_file:
+        args.key_file.touch(mode=0o600)
+        args.key_file.write_text(key, encoding="utf-8")
+        print(f"new key for {args.tenant} written to {args.key_file} (delete after upload)", file=sys.stderr)
+    else:
+        print(f"new key for {args.tenant} (shown once, not stored): {key}", file=sys.stderr)
 
 
 if __name__ == "__main__":
