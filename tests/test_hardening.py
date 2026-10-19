@@ -405,3 +405,11 @@ def test_prod_refuses_a_provider_on_a_single_label_service_host(clean_env: pytes
     )
     with pytest.raises(UnsafeConfiguration, match="local/private-network providers"):
         check_runtime_safety(cfg, settings)
+
+
+def test_explicit_external_flag_overrides_url_heuristics() -> None:
+    """A same-host runtime behind a public-looking name must still not count as failover capacity."""
+    box = {"name": "x", "litellm_model": "m", "api_base_default": "https://gpu-box.lab.example.com"}
+    assert ProviderConfig(**box).is_external() is True
+    assert ProviderConfig(**box, external=False).is_external() is False
+    assert ProviderConfig(**{**box, "api_base_default": "http://127.0.0.1:1"}, external=True).is_external()

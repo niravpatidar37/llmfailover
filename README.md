@@ -26,8 +26,10 @@
 > down for 90 s, clients still got answers for 83.9% of requests (80.0% of interactive ones)** by failing over
 > to Groq, and four runs produced **0 duplicate side effects across 141 duplicate submissions**. The run with
 > 100% availability failed over to a second runtime **on the same host**, so it is not an independent-failure
-> claim. Cloud deployment is **deploy-ready, not applied** (no cloud account connected). Read
-> [What did not work](#what-did-not-work) before relying on it.
+> claim. The end-to-end smoke suite passed **15 of 17 checks with 0 failures** against the local stack (1 skip
+> by design, 1 warning: only one external provider). Cloud deployment is **deploy-ready, not applied** (no
+> cloud account connected). Read [What did not work](#what-did-not-work) and
+> [Production readiness](#production-readiness) before relying on it.
 
 ## The problem
 
@@ -56,7 +58,9 @@ Redis so every instance agrees, and measures the result with a chaos proxy inste
 | **Circuit breakers** | Per provider: trip on error rate (≥ 50% over ≥ 4 samples) or on p95 over the latency budget; open 10 s, doubling per failed probe up to 30 s. | `breaker.py`, `health.py` |
 | **Half-open self-healing** | After the cooldown, 20% of eligible traffic (max 2 in flight) probes the provider; 3 consecutive fast successes close the breaker. | `breaker.py` |
 | **Shared state** | Breaker transitions, probe leases, health windows, rate limits, hedge budget and spend cap are atomic Lua scripts in Redis, so any number of instances share one view. | `breaker.py`, `store.py` |
-| **Hedging** | `classify` fires a hedge on the next provider after 2.5 s; the loser is cancelled; at most 30 hedges/min. | `router.py` |
+| **Hedging** | `classify` fires a hedge on the next provider after the primary's recent **p95** (shared health window, clamped to 250-2500 ms, 1.5 s until there are enough samples); the loser is cancelled; at most 30 hedges/min. Fixed per-class delays are still supported. | `router.py` |
+| **Failover-capacity guard** | Startup log WARN, a `/readyz` `failover.warning`, a `gateway_external_providers_healthy` gauge and a Terraform alert when fewer than 2 healthy **external** providers exist; same-host runtimes never count. | `config.py`, `app.py` |
+| **Quality SLI** | Every fresh completion is checked against the response schema (non-empty, not truncated) and counted in `gateway_completions_total{validity,reason}`. | `quality.py`, `service.py` |
 | **Idempotency keys** | `request_id` is claimed with `SET NX`, scoped per tenant and checked against a body fingerprint; duplicates get the stored answer (`X-Idempotent-Replay: true`), never a second execution. | `store.py`, `service.py` |
 | **Deferrable queue** | When every provider for a deferrable class is degraded, the request is queued (HTTP 202) and retried with exponential backoff and jitter; poll `GET /v1/requests/{id}`. | `service.py` |
 | **Cost attribution** | Cost per tenant and feature in Prometheus (`gateway_cost_usd_total`) and Redis (`GET /admin/costs`); a hard spend cap is checked before every paid call. | `service.py`, `spend.py` |
@@ -126,11 +130,13 @@ CHAOS_ENABLED=1 uv run python -m gateway.chaos &
 CHAOS_ENABLED=1 CHAOS_PROXY_URL=http://127.0.0.1:8113 uv run python -m gateway.app &
 
 uv run python -m gateway.migrate         # versioned Redis keyspace migrations (/readyz is 503 until run)
-uv run python scripts/smoke.py
+SMOKE_ADMIN_TOKEN=... uv run python scripts/smoke.py --base-url http://127.0.0.1:8103 \
+  --request-class classify --allow-disruptive --json-out results/smoke_local.json   # end-to-end smoke suite
+uv run python scripts/chaos_smoke.py      # dev-only walkthrough with an injected Ollama outage
 uv run python scripts/loadgen.py --provider ollama,ollama_cpu --outage 90 --rate 0.7 --out results/local_host_outage_run.json
 uv run python scripts/analyze.py          # -> results/summary.json
 uv sync --group screenshot && uv run playwright install chromium && uv run python scripts/grafana_screenshot.py
-uv run pytest -q                          # 117 tests; 17 need a real Redis (REDIS_TEST_URL), else skipped
+uv run pytest -q                          # 144 tests; 17 need a real Redis (REDIS_TEST_URL), else skipped
 docker compose -p p3-gateway stop
 ```
 
@@ -173,7 +179,7 @@ flowchart LR
 ```
 
 * **Request classes** (`config/gateway.yaml`):
-  * `classify`: interactive and hedged. Prefers `ollama` → `ollama_cpu` → `groq` → `hf`, and fires a hedge on the next provider after 2.5 s.
+  * `classify`: interactive and hedged. Prefers `ollama` → `ollama_cpu` → `groq` → `hf`, and fires a hedge on the next provider after the primary's recent p95 (250-2500 ms; 1.5 s fallback). The recorded runs used a fixed 2.5 s.
   * `generate`: interactive. Prefers `groq` → `ollama` → `ollama_cpu`.
   * `batch`: deferrable. Prefers local first, then the external providers.
 * **Breaker rules:**
@@ -192,10 +198,10 @@ flowchart LR
 2. **Traffic mix is mostly local, with a low paid rate.** About 90% of traffic prefers Ollama; `generate` (about 10%) prefers Groq. Load tests use 4-24 `max_tokens` and SST-2 one-liners (`scripts/prompts/sst2_validation_100.jsonl`, 100 real validation sentences).
    * **Gain:** all four runs cost $0.0058.
    * **Price:** the external fallback is a free-tier key shared with other projects. Run D shows it cannot absorb the full local load (429s at about 0.7 rps of gpt-oss traffic).
-3. **Hedging only for `classify`, with a 2.5 s delay and a 30 hedges/min budget.**
-   * **Cost:** hedging roughly doubles cost on every hedged call. The cancelled loser may still be billed, so a paid loser is written to the ledger at its worst-case estimate.
+3. **Hedging only for `classify`, after the primary's p95, with a 30 hedges/min budget.**
+   * **Cost:** hedging roughly doubles cost on every hedged call (about 5% of calls at a p95 delay). The cancelled loser may still be billed, so a paid loser is written to the ledger at its worst-case estimate.
    * **Gain:** a slow primary no longer dominates tail latency.
-   * **Finding:** the 2.5 s delay was too conservative. After recovery, hedged requests took about 2.6 s even though the hedge itself answered in about 100 ms. A delay near the primary's p95 (about 0.7-1.0 s at baseline) would cut the tail.
+   * **Finding:** the recorded runs used a fixed 2.5 s delay, which was too conservative: after recovery, hedged requests took about 2.6 s even though the hedge itself answered in about 100 ms. The delay is now adaptive: the primary's p95 from the Redis health window, clamped to 250-2500 ms, with a 1.5 s fallback until the window holds 4 successes ("hedge after the p95", Dean & Barroso, *The Tail at Scale*, CACM 2013). Tests prove the delay selection (`tests/test_hardening.py`); the tail-latency effect has **not yet been re-measured** with a chaos run.
 4. **Breaker state, transitions and probe admission live in Redis, so any number of gateway instances share one breaker.**
    * **Gain:** a restart keeps the provider-health view (`test_window_survives_new_tracker_instance`), and autoscaled instances agree. Every transition is one atomic Lua script: a trip is a compare-and-set on an `epoch` (two instances that see the same failures produce one transition), and half-open probes are lease tokens counted inside the script, so the in-flight probe cap holds across instances and processes (`tests/test_multi_instance.py`).
    * **Price:** each attempt costs Redis round trips (admit, record, judge), and Redis is now a hard dependency for routing. Probe leases expire after 60 s, so a crashed instance can block half-open probing for up to that long.
@@ -213,8 +219,12 @@ flowchart LR
 * **Grafana kiosk mode rendered empty time-series panels in headless Chromium.** The screenshot script uses the normal view.
 
 * **In the recorded demo, the same-host CPU runtime lost every hedge race** (it answered slower than the 2.5 s
-  hedge delay plus Groq), so outage traffic went to Groq. Not investigated further; details in
-  [assets/demo/README.md](assets/demo/README.md).
+  hedge delay plus Groq), so outage traffic went to Groq. **Cause, found later:** the dev chaos proxy did not
+  pass the gateway's cancellation on, so Ollama kept generating each cancelled hedge loser and the next call
+  queued behind it. A call right after a cancelled loser took p50 1663 ms / p95 7055 ms through the proxy
+  (4 of 9 over 2.5 s) versus 251 / 899 ms direct; after the fix, 266 / 436 ms
+  (`results/ollama_cpu_hedge_probe_{before,after}_fix.json`, [assets/demo/README.md](assets/demo/README.md)).
+  The chaos runs and the demo predate the fix and were not re-run; the proxy is dev-only.
 
 ## Security model
 
@@ -239,8 +249,11 @@ flowchart LR
 | Kill switch: env flag or Redis key stops every provider call; deferrable work is refused, queued jobs stay put | `router.py`, `service.py`, `store.py` | `test_kill_switch_env_flag_blocks_every_provider_call`, `test_kill_switch_admin_toggle_is_instant_and_reversible`, `test_worker_leaves_queue_untouched_while_kill_switch_engaged` |
 | Tenant keys from Secret Manager (hashes only), overlap rotation and revocation; the admin API cannot mint keys in prod | `store.py`, `app.py` | `test_tenant_keys_from_secret_spec_authenticate_rotate_and_revoke`, `test_malformed_tenant_spec_fails_startup` |
 | `/metrics` (tenant names, costs) off the public port in prod: served on `127.0.0.1:8080` for the sidecar only | `app.py` | `test_metrics_leave_the_public_port_when_metrics_port_is_set` |
+| Fake LLM mode (CI smoke) refused in staging/prod, twice: at startup and in the fake caller's constructor | `config.py`, `fake_llm.py` | `test_fake_llm_is_refused_in_deployed_envs[*]`, `test_fake_llm_app_refuses_to_start_in_prod`, CI `smoke` job |
+| Security headers on every response (nosniff, DENY, CSP, no-store; HSTS in staging/prod); unhandled errors return a generic JSON 500 with no trace | `app.py` | `test_security_headers_on_success_error_and_unknown_routes`, `test_unhandled_exception_returns_json_500_without_trace`, `test_smoke_suite_fails_when_a_control_is_removed` |
+| A keyed provider with a placeholder model id cannot start in staging/prod; single-label service hosts count as private | `config.py` | `test_prod_with_only_groq_keyed_has_one_provider_and_warns`, `test_prod_refuses_a_provider_on_a_single_label_service_host` |
 
-**Mutation check:** each original control was broken one at a time and the tests re-run. **13 of 14 mutants were killed.** The survivor removed only the logging-filter redaction while the record builder still redacted. That is defence in depth by design; removing both is killed. The deploy-readiness controls (new rows above) got their own pass: **18 of 18 mutants killed**, run against fakeredis and a real Redis 7 (`results/deploy_ready_mutation_check.json`).
+**Mutation check:** each original control was broken one at a time and the tests re-run. **13 of 14 mutants were killed.** The survivor removed only the logging-filter redaction while the record builder still redacted. That is defence in depth by design; removing both is killed. The deploy-readiness controls got their own pass: **18 of 18 mutants killed**, run against fakeredis and a real Redis 7 (`results/deploy_ready_mutation_check.json`). The production-hardening controls (fake-LLM guards, headers, 500 handler, adaptive hedge, quality counter, failover capacity, placeholder model, proxy cancellation): **13 of 13 killed** after one survivor led to an extra test (`results/hardening_mutation_check.json`).
 
 Other controls:
 * Request bodies are capped (64 KB, 8000 prompt chars, 32 messages), and `max_tokens` is capped per class.
@@ -308,8 +321,9 @@ What is in the repo:
 | Memorystore for Redis (STANDARD_HA in prod, BASIC in staging), private IP, AUTH, TLS, reached through **Direct VPC egress** (no connector) | `modules/gateway/network.tf` |
 | One service account per role (api, worker, migrate) with secret-level grants; deploy SA gets only run.developer, actAs on those SAs, run.invoker and AR writer | `modules/gateway/iam.tf` |
 | Secret Manager secrets created **empty**; values are added with `gcloud secrets versions add` | `modules/gateway/main.tf`, RUNBOOK §2 |
-| CD: build once, deploy the digest to staging (migrate, no-traffic canary, smoke `/healthz` + `/readyz`, promote), then prod behind the `production` environment approval (canary 10%, soak, 100%), automatic rollback | `.github/workflows/deploy.yml`, `scripts/smoke_deploy.sh` |
-| CI: `terraform fmt -check`, `init -backend=false` + `validate`, tflint (terraform + google rulesets), checkov (one inline-justified skip: CMEK for Artifact Registry) | `.github/workflows/ci.yml` |
+| CD: build once, sign the digest (cosign keyless), deploy it to staging (verify signature, migrate, no-traffic canary, `scripts/smoke.py`, promote, smoke), then prod behind the `production` environment approval (verify, canary 0% smoke, 10% + soak + smoke, 100% + smoke), automatic rollback on any failure | `.github/workflows/deploy.yml`, `scripts/smoke.py` |
+| Monitoring as code: email channel, `/healthz` uptime check, alerts for 5xx ratio, p95 over SLO, saturation, multi-window error-budget burn, breaker open, failover rate, queue depth, tenant cost over budget, failover capacity < 2, valid-completion ratio | `modules/gateway/monitoring.tf`, RUNBOOK §9 |
+| CI: `terraform fmt -check`, `init -backend=false` + `validate`, tflint (terraform + google rulesets), checkov (one inline-justified skip: CMEK for Artifact Registry); `smoke` job on the compose stack (fake LLM); CycloneDX SBOM artifact; Dependabot (actions, docker, compose, uv, terraform) | `.github/workflows/ci.yml`, `.github/dependabot.yml` |
 
 **One-time GCP bootstrap** (exact commands in RUNBOOK §1-2): create a GCS state bucket; create a Workload
 Identity pool + OIDC provider restricted to this repository and a `gh-deploy` service account; set the repo
@@ -322,8 +336,10 @@ is skipped and the workflow passes.
 * **Fewer independent providers.** Prod uses `config/gateway.prod.yaml`: external providers only. Ollama (GPU host
   and CPU container) is local/dev only, and the gateway refuses to start in prod with a local/private provider
   URL. Today only Groq is keyed, so prod has **one** provider and **no failover target**: when Groq's breaker
-  opens, interactive requests fail fast (503) and deferrable ones queue. Anthropic turns on when
-  `ANTHROPIC_API_KEY` exists and its placeholder model id is verified; HF when the account is funded (402).
+  opens, interactive requests fail fast (503) and deferrable ones queue. The gateway says so: a startup WARN,
+  `failover.warning` in `/readyz`, and the "Fewer than 2 healthy external providers" alert. Anthropic turns on
+  with `enable_anthropic` + a verified `anthropic_model` in tfvars (the placeholder id is refused); HF when the
+  account is funded (402). Steps: RUNBOOK §11.
   The availability numbers in the Results table do not transfer to this configuration.
 * **Autoscaling** (prod `min 1 / max 10`, staging `0 / 3`) relies on the Redis-shared breaker, limits and spend
   cap. That is proven by tests that run two gateway instances (and two OS processes) on one Redis in CI, not by
@@ -346,17 +362,44 @@ is skipped and the workflow passes.
 | Image refuses prod + chaos (CI docker job) | GMP sidecar CPU sizing (1 vCPU is conservative), and that the default scrape config is enough |
 | Shared breaker semantics on real Redis 7 (CI service container) | Memorystore TLS/AUTH connection details from Cloud Run (server CA via `REDIS_CA_CERT_PEM`) |
 
+## Production readiness
+
+**Smoke suite** (`scripts/smoke.py`, stdlib only; RUNBOOK §8). Same script in CI, in CD and by hand.
+
+| Run | Result | Raw |
+|---|---|---|
+| Local dev stack, real deps (Redis 7 container, host Ollama + `ollama-cpu` container, Groq enabled but not reached), `--request-class classify --allow-disruptive`, 2026-10-19 | **15 PASS, 0 FAIL, 1 SKIP** (`metrics_not_public`: dev serves `/metrics` by design), **1 WARN** (`failover_capacity`: Groq is the only external provider), 3.4 s; the core request was answered by `ollama_cpu` after a hedge | [`results/smoke_local.json`](results/smoke_local.json) |
+| CI `smoke` job: compose stack (redis, migrate, gateway, prometheus, grafana) with the deterministic fake LLM | 15 PASS, 0 FAIL, 1 SKIP, 1 WARN, plus Prometheus scraped `gateway_circuit_state`; JSON uploaded as the `smoke-summary` artifact | CI artifact |
+
+Honest checklist:
+
+| Item | Status |
+|---|---|
+| Liveness/readiness split, graceful shutdown, env-only config, JSON logs with redaction, versioned migrations job | done (tested) |
+| Prod fail-closed guards: chaos, fake LLM, local providers, placeholder model ids, plaintext Redis, file ledger, weak admin token | done (tested, mutation-checked) |
+| Security headers, no stack traces, typed 4xx errors, request size limits, tenant rate limits, kill switch | done (tested; exercised by the smoke suite) |
+| End-to-end smoke suite in CI (fake LLM) and locally against real deps | done |
+| Smoke after the staging deploy and around the prod canary, with rollback | written in `deploy.yml`; **not applied** (no GCP project) |
+| Monitoring as code (uptime, SLO burn, latency, saturation, app alerts), notification channel | written, validated against `hashicorp/google` 8.7.0; **not applied** |
+| SBOM (CycloneDX) in CI, images pinned by digest, Dependabot | done |
+| Keyless image signing + verification | written in `deploy.yml`; **not applied** (runs only with GCP) |
+| A second independent external provider | **not done**: needs an Anthropic key or HF credits (human); the gateway warns and alerts until then |
+| Valid-completion SLO and adaptive hedge measured on real traffic | **not yet measured** |
+| On-call rota, `alert_email`, GCP bootstrap (WIF, state bucket, secrets), `production` environment reviewers | **human** (RUNBOOK §1-2) |
+
 ## Project layout
 
 ```
 src/gateway/           app (FastAPI), router, breaker, health windows, store (Redis), service, queue worker,
                        spend cap, chaos proxy, config, redaction, migrations/
 config/                gateway.yaml (dev providers + classes), gateway.prod.yaml (external providers only)
-scripts/               loadgen.py (chaos runs), analyze.py (-> results/summary.json), smoke.py, init_env.py,
-                       make_tenant_key.py, grafana_screenshot.py, smoke_deploy.sh
+scripts/               smoke.py (end-to-end smoke suite), loadgen.py (chaos runs), analyze.py
+                       (-> results/summary.json), chaos_smoke.py, hedge_probe.py, init_env.py,
+                       make_tenant_key.py, grafana_screenshot.py
 results/               raw per-request chaos runs, summary.json, HF 402 probe, mutation-check results
-tests/                 117 tests: unit, API, security controls, multi-instance (fakeredis, real Redis, 2 processes)
-deploy/                Prometheus config and the provisioned Grafana dashboard
+tests/                 144 tests: unit, API, security controls, multi-instance (fakeredis, real Redis, 2
+                       processes), and the smoke suite run over HTTP against an in-process gateway
+deploy/                Prometheus configs, the provisioned Grafana dashboard, compose.smoke.yml (CI fake-LLM stack)
 infra/terraform/       Cloud Run module + envs/staging, envs/prod
 docs/                  RUNBOOK.md, SLO.md, Grafana screenshots from the runs
 assets/brand/          logo, icons, favicon, social preview + build_brand.py

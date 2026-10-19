@@ -1,0 +1,100 @@
+{
+  "ts": "2026-10-19T06:39:29Z",
+  "method": "each mutant applied alone, the listed test files run, file restored",
+  "killed": 13,
+  "total": 13,
+  "mutants": [
+    {
+      "mutant": "fake_llm_startup_guard_removed",
+      "file": "src/gateway/config.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed in 0.18s"
+    },
+    {
+      "mutant": "fake_llm_constructor_guard_removed",
+      "file": "src/gateway/fake_llm.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed in 0.19s"
+    },
+    {
+      "mutant": "security_headers_not_set",
+      "file": "src/gateway/app.py",
+      "tests": "tests/test_hardening.py tests/test_smoke_script.py",
+      "result": "KILLED",
+      "summary": "1 failed, 5 passed in 0.41s"
+    },
+    {
+      "mutant": "generic_500_handler_removed",
+      "file": "src/gateway/app.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 7 passed in 0.34s"
+    },
+    {
+      "mutant": "adaptive_hedge_ignored",
+      "file": "src/gateway/router.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 13 passed in 1.91s"
+    },
+    {
+      "mutant": "hedge_delay_not_clamped",
+      "file": "src/gateway/router.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 15 passed in 1.14s"
+    },
+    {
+      "mutant": "quality_counter_removed",
+      "file": "src/gateway/service.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 11 passed in 0.42s"
+    },
+    {
+      "mutant": "truncation_counted_valid",
+      "file": "src/gateway/quality.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 11 passed in 0.38s"
+    },
+    {
+      "mutant": "open_breakers_count_as_healthy",
+      "file": "src/gateway/app.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 9 passed in 0.31s"
+    },
+    {
+      "mutant": "explicit_external_flag_ignored",
+      "file": "src/gateway/config.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 22 passed in 1.71s",
+      "note": "survived the first pass (URL heuristics already covered the shipped config); killed after adding test_explicit_external_flag_overrides_url_heuristics"
+    },
+    {
+      "mutant": "single_label_host_treated_external",
+      "file": "src/gateway/config.py",
+      "tests": "tests/test_hardening.py",
+      "result": "KILLED",
+      "summary": "1 failed, 21 passed in 1.19s"
+    },
+    {
+      "mutant": "placeholder_model_allowed_in_prod",
+      "file": "src/gateway/config.py",
+      "tests": "tests/test_deploy_safety.py",
+      "result": "KILLED",
+      "summary": "1 failed, 13 passed in 0.25s"
+    },
+    {
+      "mutant": "chaos_proxy_no_cancel_propagation",
+      "file": "src/gateway/chaos.py",
+      "tests": "tests/test_components.py",
+      "result": "KILLED",
+      "summary": "1 failed, 15 passed in 12.65s"
+    }
+  ]
+}
