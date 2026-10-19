@@ -106,6 +106,7 @@ services:
     environment:
       ENV: dev
       CHAOS_ENABLED: "1"
+      CHAOS_HOST: 0.0.0.0 # inside the container; the published port stays on 127.0.0.1
       OLLAMA_URL: http://host.docker.internal:11434
       OLLAMA_CPU_URL: http://ollama-cpu:11434
     extra_hosts: ["host.docker.internal:host-gateway"]

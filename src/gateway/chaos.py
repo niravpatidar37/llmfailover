@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hmac
 import os
 import random
@@ -79,6 +80,12 @@ def create_chaos_app(
     faults: dict[str, tuple[Fault, float | None]] = {}
     reg = CollectorRegistry()
     injected = Counter("chaos_injected_errors_total", "Errors injected", ["provider"], registry=reg)
+    abandoned = Counter(
+        "chaos_upstream_cancelled_total",
+        "Upstream calls cancelled because the gateway disconnected (e.g. a cancelled hedge loser)",
+        ["provider"],
+        registry=reg,
+    )
     forwarded = Counter("chaos_forwarded_total", "Requests forwarded upstream", ["provider"], registry=reg)
     active = Gauge("chaos_fault_error_rate", "Active injected error rate", ["provider"], registry=reg)
     lat_g = Gauge("chaos_fault_latency_ms", "Active injected latency", ["provider"], registry=reg)
@@ -161,9 +168,25 @@ def create_chaos_app(
         headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_HEADERS}
         url = f"{base.rstrip('/')}/{path}"
         body = await request.body()
-        resp = await client_holder["c"].request(
-            request.method, url, content=body, headers=headers, params=dict(request.query_params)
+        # Forward the gateway's cancellation: when the gateway drops the connection (a cancelled hedge loser),
+        # cancel the upstream call so the model runtime stops generating. Without this the abandoned work
+        # queued in front of the next call (results/ollama_cpu_hedge_probe.json).
+        upstream = asyncio.create_task(
+            client_holder["c"].request(
+                request.method, url, content=body, headers=headers, params=dict(request.query_params)
+            )
         )
+        while True:
+            done, _ = await asyncio.wait({upstream}, timeout=0.05)
+            if done:
+                break
+            if await request.is_disconnected():
+                upstream.cancel()
+                with contextlib.suppress(asyncio.CancelledError, httpx.HTTPError):
+                    await upstream
+                abandoned.labels(provider).inc()
+                return Response(status_code=499)  # client closed request (nobody reads it)
+        resp = upstream.result()
         forwarded.labels(provider).inc()
         out_headers = {
             k: v
@@ -183,7 +206,9 @@ def main() -> None:  # pragma: no cover
 
     load_dotenv(REPO_ROOT / ".env", override=False)  # chaos tokens only; provider secrets not needed here
     app = create_chaos_app()
-    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("CHAOS_PORT", "8113")), log_level="warning")
+    # 127.0.0.1 by default; the compose service sets CHAOS_HOST=0.0.0.0 (its port is published on 127.0.0.1).
+    host = os.environ.get("CHAOS_HOST", "127.0.0.1")
+    uvicorn.run(app, host=host, port=int(os.environ.get("CHAOS_PORT", "8113")), log_level="warning")
 
 
 if __name__ == "__main__":  # pragma: no cover

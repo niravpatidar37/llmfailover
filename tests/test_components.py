@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import threading
 from pathlib import Path
@@ -149,3 +150,52 @@ async def test_chaos_proxy_injects_and_clears_faults(monkeypatch: pytest.MonkeyP
         assert (await c.post("/ollama/api/chat", json={})).status_code == 200
         # only fixed upstreams: unknown provider names are not forwarded anywhere
         assert (await c.post("/evil.example.com/x", json={})).status_code == 404
+
+
+def test_chaos_proxy_cancels_upstream_when_the_gateway_disconnects(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A cancelled hedge loser must not keep the model runtime busy behind the proxy.
+
+    Before this fix the proxy kept waiting on the upstream after the gateway hung up, so the runtime kept
+    generating and the next call queued behind it (results/ollama_cpu_hedge_probe_before_fix.json).
+    """
+    import socket
+    import time
+
+    import uvicorn
+
+    monkeypatch.setenv("CHAOS_ENABLED", "1")
+    started, cancelled = threading.Event(), threading.Event()
+
+    async def slow_upstream(request: httpx.Request) -> httpx.Response:
+        started.set()
+        try:
+            await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+        return httpx.Response(200, json={"ok": True})
+
+    app = create_chaos_app(
+        {"ollama_cpu": "http://upstream.local"},
+        admin_token="chaos-token-0123456789abcdef",
+        transport=httpx.MockTransport(slow_upstream),
+    )
+    with socket.socket() as sk:
+        sk.bind(("127.0.0.1", 0))
+        port = sk.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error"))
+    th = threading.Thread(target=server.run, daemon=True)
+    th.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.05)
+        with pytest.raises(httpx.ReadTimeout):  # the gateway gives up (hedge loser cancelled)
+            httpx.post(f"http://127.0.0.1:{port}/ollama_cpu/api/chat", json={}, timeout=0.5)
+        assert started.is_set()
+        assert cancelled.wait(2.0), "upstream call was not cancelled after the client disconnected"
+        m = httpx.get(f"http://127.0.0.1:{port}/metrics", timeout=5).text
+        assert 'chaos_upstream_cancelled_total{provider="ollama_cpu"} 1.0' in m
+    finally:
+        server.should_exit = True
+        th.join(timeout=10)
