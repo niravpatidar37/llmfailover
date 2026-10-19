@@ -59,6 +59,9 @@ providers:
     # Optional 4th provider; dormant unless ANTHROPIC_API_KEY is set.
     # PLACEHOLDER model id - verify with GET https://api.anthropic.com/v1/models before enabling.
     litellm_model: "anthropic/VERIFY-MODEL-ID-VIA-GET-v1-models"
+    # Set ANTHROPIC_MODEL (e.g. "anthropic/<id from GET /v1/models>") to override the placeholder; staging/prod
+    # refuse to start with a keyed provider that still has the placeholder id.
+    litellm_model_env: ANTHROPIC_MODEL
     api_key_env: ANTHROPIC_API_KEY
     enabled_env: ANTHROPIC_API_KEY
     paid: true
@@ -74,7 +77,14 @@ classes:
     mode: interactive
     preference: [ollama, ollama_cpu, groq, hf, anthropic]
     max_tokens_cap: 16
-    hedge_after_ms: 2500
+    # Adaptive hedge: fire after the primary's recent p95 (shared health window), clamped to 250-2500 ms;
+    # 1500 ms until the window has breaker.min_samples successes. The old fixed 2.5 s was too conservative
+    # (README, design decision 3).
+    hedge_after_ms: 1500
+    hedge_adaptive: true
+    hedge_quantile: p95
+    hedge_min_ms: 250
+    hedge_max_ms: 2500
   generate:
     mode: interactive
     preference: [groq, ollama, ollama_cpu, hf, anthropic]
