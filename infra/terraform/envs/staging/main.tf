@@ -16,4 +16,8 @@ module "gateway" {
   kill_switch           = var.kill_switch
   enable_anthropic      = var.enable_anthropic
   enable_hf             = var.enable_hf
+  anthropic_model       = var.anthropic_model
+
+  alert_email             = var.alert_email
+  tenant_daily_budget_usd = var.tenant_daily_budget_usd
 }

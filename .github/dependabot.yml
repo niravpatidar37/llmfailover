@@ -1,0 +1,37 @@
+# Dependency update PRs. Ecosystem names from GitHub's "Dependabot supported ecosystems" reference:
+# github-actions (SHA-pinned actions keep their pin style), docker (Dockerfile base images, pinned by
+# digest), docker-compose (compose service images, pinned by digest), uv (pyproject.toml + uv.lock),
+# terraform (hashicorp/google provider pins and lock files).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: terraform
+    directories:
+      - /infra/terraform/envs/staging
+      - /infra/terraform/envs/prod
+      - /infra/terraform/modules/gateway
+    schedule:
+      interval: monthly

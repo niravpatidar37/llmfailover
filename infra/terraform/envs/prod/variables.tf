@@ -65,3 +65,20 @@ variable "enable_hf" {
   type        = bool
   default     = false
 }
+
+variable "anthropic_model" {
+  description = "Verified Anthropic model id (anthropic/<id from GET /v1/models>); needed when enable_anthropic = true."
+  type        = string
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "On-call email for the Cloud Monitoring notification channel."
+  type        = string
+}
+
+variable "tenant_daily_budget_usd" {
+  description = "Per-tenant daily attributed-cost alert threshold (USD, list-price estimate)."
+  type        = number
+  default     = 1
+}

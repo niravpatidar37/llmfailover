@@ -74,7 +74,15 @@ resource "google_service_account_iam_member" "deploy_act_as" {
   member             = "serviceAccount:${var.deploy_service_account_email}"
 }
 
-# Smoke tests call /healthz and /readyz with an identity token when the service is not public.
+# The CD smoke test (scripts/smoke.py) reads the smoke tenant's key; this is the deploy SA's only secret.
+resource "google_secret_manager_secret_iam_member" "deploy_smoke_key" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.s["smoke_api_key"].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.deploy_service_account_email}"
+}
+
+# Smoke tests call the service with an identity token when it is not public.
 resource "google_cloud_run_v2_service_iam_member" "deploy_invoke" {
   project  = var.project_id
   location = google_cloud_run_v2_service.api.location

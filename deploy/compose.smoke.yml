@@ -1,0 +1,17 @@
+# CI smoke override: the full app stack (redis, migrate, gateway, prometheus, grafana) with the deterministic
+# fake LLM instead of model runtimes, so the smoke job needs no GPU, no model download and no secrets.
+#   docker compose -f docker-compose.yml -f deploy/compose.smoke.yml --profile app up -d gateway prometheus grafana
+# FAKE_LLM=1 is refused by the gateway when ENV is staging or prod (tests/test_hardening.py, CI smoke job).
+services:
+  gateway:
+    environment:
+      ENV: dev
+      FAKE_LLM: "1"
+      FAKE_LLM_LATENCY_MS: "25"
+      # no provider keys: only the two local runtimes are enabled, and the fake caller answers for them
+      GROQ_API_KEY: ""
+      HF_ENABLED: "0"
+  prometheus:
+    # scrape the gateway over the compose network (the dev config scrapes host.docker.internal)
+    volumes:
+      - ./deploy/prometheus/prometheus.compose.yml:/etc/prometheus/prometheus.yml:ro
