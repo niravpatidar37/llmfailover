@@ -23,7 +23,7 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "fakeredis[lua]==2.40.0",
-    "ruff==0.17.1",
+    "ruff==0.17.2",
     "mypy==2.4.0",
     "types-PyYAML",
     "bandit==1.9.4",
