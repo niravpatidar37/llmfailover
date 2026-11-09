@@ -59,7 +59,7 @@ jobs:
           case "$digest" in sha256:*) ;; *) echo "no digest resolved"; exit 1 ;; esac
           echo "image=${repo}@${digest}" >> "$GITHUB_OUTPUT"
           echo "built ${repo}@${digest}"
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
       - name: sign the image digest (keyless; identity = this workflow on this ref)
         env:
           IMAGE: ${{ steps.push.outputs.image }}
@@ -93,7 +93,7 @@ jobs:
           id_token_audience: llm-gateway-staging-smoke
           id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
       - name: verify the image signature (built and signed by this repo's deploy workflow)
         env:
           IMAGE: ${{ needs.build.outputs.image }}
@@ -191,7 +191,7 @@ jobs:
           id_token_audience: llm-gateway-prod-smoke
           id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
       - name: verify the image signature (built and signed by this repo's deploy workflow)
         env:
           IMAGE: ${{ needs.build.outputs.image }}
